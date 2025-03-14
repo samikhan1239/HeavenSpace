@@ -2,56 +2,82 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-// ✅ REGISTER USER
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    console.log("Received request:", req.body);
 
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
+    const { username, email, password, role } = req.body;
+
+    // ✅ Check if username or email already exists
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }], // Check both fields
+    });
+
     if (existingUser) {
-      return res.status(400).json({ message: "Email already registered" });
+      console.log("Username or Email already exists");
+      return res
+        .status(400)
+        .json({ message: "Username or Email already exists" });
     }
 
-    // Hash password before saving
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Set payment status based on role (Admin needs to pay before listing)
-    const isPaid = role === "admin" ? false : true; // Admin must pay, users are free
+    // Default payment settings
+    const isPaid = role === "admin" ? false : true;
+    const paymentStatus = role === "admin" ? "pending" : "completed";
 
-    // Create user in database
+    // Create new user
     const newUser = new User({
-      name,
+      username,
       email,
       password: hashedPassword,
-      role, // "user" or "admin"
-      isPaid, // true if user, false if admin (until payment is done)
+      role,
+      isPaid,
+      paymentStatus,
     });
 
     await newUser.save();
 
-    // Generate JWT Token
+    // Generate JWT token
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is missing!");
+      return res.status(500).json({ message: "Server configuration error" });
+    }
+
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },
       process.env.JWT_SECRET,
-      {
-        expiresIn: "7d",
-      }
+      { expiresIn: "7d" }
     );
+
+    console.log("User registered successfully");
 
     res.status(201).json({
       message: "Registration successful",
       user: {
         id: newUser._id,
-        name: newUser.name,
+        username: newUser.username,
         email: newUser.email,
         role: newUser.role,
         isPaid: newUser.isPaid,
+        paymentStatus: newUser.paymentStatus,
       },
       token,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error("Signup error:", error);
+
+    // ✅ Handle MongoDB Duplicate Key Error
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: `Duplicate Key Error: ${Object.keys(error.keyPattern).join(
+          ", "
+        )} already exists`,
+      });
+    }
+
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
