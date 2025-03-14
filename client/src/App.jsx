@@ -6,6 +6,8 @@ import SignUp from "./pages/SignUp";
 import About from "./pages/About";
 import Profile from "./pages/Profile";
 import Header from "./components/Header";
+import { Admin } from "./Admin/Admin";
+import { SuperAdmin } from "./SuperAdmin/SuperAdmin";
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
         <Route path="/sign-up" element={<SignUp />}></Route>
         <Route path="/about" element={<About />}></Route>
         <Route path="/profile" element={<Profile />}></Route>
+        <Route path="/admin" element={<Admin />}></Route>
+        <Route path="/super-admin" element={<SuperAdmin />}></Route>
       </Routes>
     </BrowserRouter>
   );

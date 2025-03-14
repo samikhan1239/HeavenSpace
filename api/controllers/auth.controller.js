@@ -81,3 +81,65 @@ export const signup = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+export const signin = async (req, res) => {
+  try {
+    console.log("Received login request:", req.body);
+    const { email, password } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // Check if the account is active
+    if (!user.isActive) {
+      return res
+        .status(403)
+        .json({ message: "Account is deactivated. Contact support." });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // Check payment status for admins
+    if (user.role === "admin" && !user.isPaid) {
+      return res
+        .status(403)
+        .json({ message: "Payment required for admin access" });
+    }
+
+    // Generate JWT token
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is missing!");
+      return res.status(500).json({ message: "Server configuration error" });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    console.log("User logged in successfully");
+    res.status(200).json({
+      message: "Login successful",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isPaid: user.isPaid,
+        paymentStatus: user.paymentStatus,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("Signin error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
