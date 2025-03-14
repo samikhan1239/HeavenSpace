@@ -16,7 +16,7 @@ export default function Header() {
           <input
             type="text"
             placeholder="Search..."
-            classsName="bg-transparen focus:outline-none w-24 sm:w-64"
+            className="bg-transparen focus:outline-none w-24 sm:w-64"
           />
           <FaSearch className="text-slate-500" />
         </form>
