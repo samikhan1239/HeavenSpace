@@ -1,37 +1,36 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"; // ✅ Use `import` instead of `require`
 
 const listingSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    description: { type: String, required: true },
-    facilities: { type: [String], required: true }, // ✅ Changed to Array
-    price: { type: Number, required: true },
+    name: { type: String, trim: true },
+    description: { type: String },
+    facilities: { type: [String] },
+    price: { type: Number },
     discountPrice: { type: Number },
-    location: { type: String, required: true },
-    category: { type: String, required: true },
-    image: { type: String, required: true }, // Store image URL or use a buffer
-    phoneNo: { type: String, required: true },
+    location: { type: String },
+    category: { type: String },
+    image: [{ type: String }],
+    phoneNo: { type: String },
     availability: {
       type: String,
-      enum: ["Available", "Not Available"], // ✅ Ensure this matches products.js
+      enum: ["Available", "Not Available"],
       default: "Available",
     },
-    availableRooms: { type: Number, required: true, default: 0 },
+    availableRooms: { type: Number, default: 0 },
     roomType: { type: String },
     genderPreference: {
       type: String,
-      enum: ["Male", "Female", "Any"], // ✅ Fixed to match products.js
-      required: true,
+      enum: ["Male", "Female", "Any"],
     },
     furnishing: { type: String },
     securityDeposit: { type: Number },
     leaseDuration: { type: String },
-    nearbyLandmarks: { type: [String] }, // ✅ Changed to Array
+    nearbyLandmarks: { type: [String] },
     parkingAvailable: { type: Boolean, default: false },
-    kitchen: { type: Boolean, default: false }, // ✅ Changed from String to Boolean
+    kitchen: { type: Boolean, default: false },
     bathroomType: {
       type: String,
-      enum: ["Attached", "Common"], // ✅ Fixed to match products.js
+      enum: ["Attached", "Common"],
       default: "Attached",
     },
     bedCount: { type: Number },
@@ -49,23 +48,22 @@ const listingSchema = new mongoose.Schema(
     listingType: {
       type: String,
       enum: ["Direct Owner", "Broker"],
-      required: true,
-    }, // ✅ Fixed Enum
+    },
     brokerName: { type: String },
     brokeragePrice: { type: Number },
     rating: { type: Number, default: 0 },
     numReviews: { type: Number, default: 100 },
-    tags: { type: [String] }, // ✅ Changed to Array
+    tags: { type: [String] },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },
   },
-  { timestamps: true } // Automatically add createdAt and updatedAt
+  { timestamps: true }
 );
 
-module.exports = mongoose.model("Listing", listingSchema);
+const Listing = mongoose.model("Listing", listingSchema);
+export default Listing; // ✅ Export properly
