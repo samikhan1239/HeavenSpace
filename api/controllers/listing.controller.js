@@ -43,7 +43,8 @@ export const createListing = async (req, res, next) => {
     // Create listing with the uploaded image URL
     const listing = await Listing.create({
       ...req.body,
-      image: imageUrl, // Save image URL in DB
+      image: imageUrl,
+      // Save image URL in DB
     });
 
     res.status(201).json({

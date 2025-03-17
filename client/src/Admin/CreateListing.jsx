@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { useSelector } from "react-redux";
-import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 
 const CreateListing = () => {
@@ -9,8 +7,6 @@ const CreateListing = () => {
   const [message, setMessage] = useState("");
 
   const [formData, setFormData] = useState({
-    id: uuidv4(),
-
     name: "",
     description: "",
     price: "",
@@ -149,9 +145,8 @@ const CreateListing = () => {
     const formDataToSend = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       if (key === "imageUrls" && value.length > 0) {
-        // Send all image URLs as an array
         formDataToSend.append("images", JSON.stringify(value));
-      } else if (key !== "imageUrls") {
+      } else {
         formDataToSend.append(key, String(value));
       }
     });
@@ -164,6 +159,10 @@ const CreateListing = () => {
     try {
       const res = await fetch("/api/listings/create", {
         method: "POST",
+        headers: {
+          // Include JWT token in Authorization header (assuming it's stored in localStorage)
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
         body: formDataToSend,
       });
 
@@ -177,12 +176,12 @@ const CreateListing = () => {
         throw new Error("No listing ID returned from server");
       }
 
+      console.log("Server Response:", data);
+
       navigate(`/listing/${listingId}`);
       setMessage("🎉 Listing created successfully!");
 
       setFormData({
-        id: uuidv4(),
-
         name: "",
         description: "",
         price: "",
@@ -237,7 +236,6 @@ const CreateListing = () => {
       )}
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-        <input type="hidden" id="user" value={formData.user} />
         <input
           type="text"
           id="name"
