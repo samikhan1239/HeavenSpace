@@ -6,12 +6,13 @@ import SignUp from "./pages/SignUp";
 import About from "./pages/About";
 import Profile from "./pages/Profile";
 import Header from "./components/Header";
-import { Admin } from "./Admin/Admin";
+
 import { SuperAdmin } from "./SuperAdmin/SuperAdmin";
 import CreateListing from "./Admin/CreateListing";
 import Listings from "./Admin/Listings";
 import ListingDetail from "./Admin/ListingDetail";
 import UserListings from "./Admin/Listings";
+import { Admin } from "./Admin/Admin";
 
 export default function App() {
   return (

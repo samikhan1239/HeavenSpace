@@ -224,293 +224,382 @@ const CreateListing = () => {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">
+    <div className="p-6 max-w-4xl mx-auto bg-gray-50 rounded-lg shadow-lg">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
         {editingListing ? "Edit Listing" : "Create Listing"}
       </h1>
       {message && (
         <p
-          className={`text-center mb-4 ${
+          className={`text-center mb-6 p-3 rounded-lg ${
             message.includes("Error") || message.includes("❌")
-              ? "text-red-500"
-              : "text-green-500"
+              ? "bg-red-100 text-red-700"
+              : "bg-green-100 text-green-700"
           }`}
         >
           {message}
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-        <input
-          type="text"
-          id="name"
-          value={formData.name}
-          placeholder="Property Name"
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        />
-        <textarea
-          id="description"
-          value={formData.description}
-          placeholder="Description"
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        />
-        <input
-          type="number"
-          id="price"
-          value={formData.price}
-          placeholder="Price"
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        />
-        <input
-          type="number"
-          id="discountPrice"
-          value={formData.discountPrice}
-          placeholder="Discount Price"
-          onChange={handleChange}
-          className="border p-2 rounded"
-        />
-        <input
-          type="number"
-          id="securityDeposit"
-          value={formData.securityDeposit}
-          placeholder="Security Deposit"
-          onChange={handleChange}
-          className="border p-2 rounded"
-        />
-        <label>Listing Type:</label>
-        <select
-          id="listingType"
-          value={formData.listingType}
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        >
-          <option value="Direct Owner">Direct Owner</option>
-          <option value="Broker">Broker</option>
-        </select>
-
-        {formData.listingType === "Broker" && (
-          <>
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
+        {/* Left Column */}
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Property Name
+            </label>
             <input
               type="text"
-              id="brokerName"
-              value={formData.brokerName}
-              placeholder="Broker Name"
+              id="name"
+              value={formData.name}
+              placeholder="Enter property name"
               onChange={handleChange}
-              className="border p-2 rounded"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              required
             />
-            <input
-              type="tel"
-              id="brokerContact"
-              value={formData.brokerContact}
-              placeholder="Broker Contact No."
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Description
+            </label>
+            <textarea
+              id="description"
+              value={formData.description}
+              placeholder="Describe the property"
               onChange={handleChange}
-              className="border p-2 rounded"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 h-32 resize-none"
+              required
             />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Price
+            </label>
             <input
               type="number"
-              id="brokeragePrice"
-              value={formData.brokeragePrice}
-              placeholder="Brokerage Price"
+              id="price"
+              value={formData.price}
+              placeholder="Enter price"
               onChange={handleChange}
-              className="border p-2 rounded"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              required
             />
-          </>
-        )}
-
-        {formData.listingType === "Direct Owner" && (
-          <>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Discount Price
+            </label>
             <input
-              type="text"
-              id="ownerName"
-              value={formData.ownerName}
-              placeholder="Owner Name"
+              type="number"
+              id="discountPrice"
+              value={formData.discountPrice}
+              placeholder="Enter discount price"
               onChange={handleChange}
-              className="border p-2 rounded"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Security Deposit
+            </label>
             <input
-              type="tel"
-              id="ownerContact"
-              value={formData.ownerContact}
-              placeholder="Owner Contact No."
+              type="number"
+              id="securityDeposit"
+              value={formData.securityDeposit}
+              placeholder="Enter security deposit"
               onChange={handleChange}
-              className="border p-2 rounded"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
             />
-          </>
-        )}
-
-        <label>Property Type:</label>
-        <select
-          id="propertyType"
-          value={formData.propertyType}
-          onChange={handleChange}
-          className="border p-2 rounded"
-        >
-          <option value="Room">Room</option>
-          <option value="Hostel">Hostel</option>
-          <option value="Flat">Flat</option>
-        </select>
-
-        <label>Room Type:</label>
-        <select
-          id="roomType"
-          value={formData.roomType}
-          onChange={handleChange}
-          className="border p-2 rounded"
-        >
-          {roomTypeOptions[formData.propertyType].map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-
-        {(formData.propertyType === "Room" ||
-          formData.propertyType === "Hostel") && (
-          <input
-            type="number"
-            id="availableRooms"
-            placeholder="No. of Available Rooms"
-            value={formData.availableRooms}
-            onChange={handleChange}
-            className="border p-2 rounded"
-            required
-          />
-        )}
-
-        <input
-          type="text"
-          id="location"
-          value={formData.location}
-          placeholder="Location"
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        />
-
-        <input
-          type="tel"
-          id="phoneNo"
-          value={formData.phoneNo}
-          placeholder="Phone Number"
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        />
-
-        <select
-          id="availability"
-          value={formData.availability}
-          onChange={handleChange}
-          className="border p-2 rounded"
-        >
-          <option value="Available">Available</option>
-          <option value="Not Available">Not Available</option>
-        </select>
-
-        <label>Gender Preference:</label>
-        <select
-          id="genderPreference"
-          value={formData.genderPreference}
-          onChange={handleChange}
-          className="border p-2 rounded"
-          required
-        >
-          <option value="Any">Any</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-        </select>
-
-        <div className="grid grid-cols-2 gap-2">
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              id="parkingAvailable"
-              checked={formData.parkingAvailable}
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Listing Type
+            </label>
+            <select
+              id="listingType"
+              value={formData.listingType}
               onChange={handleChange}
-              className="mr-2"
-            />
-            Parking Available
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              id="kitchen"
-              checked={formData.kitchen}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            Kitchen
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              id="housekeeping"
-              checked={formData.housekeeping}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            Housekeeping
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              id="electricityBackup"
-              checked={formData.electricityBackup}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            Electricity Backup
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              id="laundryServices"
-              checked={formData.laundryServices}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            Laundry Services
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              id="securityGuard"
-              checked={formData.securityGuard}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            Security Guard
-          </label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              id="cctv"
-              checked={formData.cctv}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            CCTV
-          </label>
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              required
+            >
+              <option value="Direct Owner">Direct Owner</option>
+              <option value="Broker">Broker</option>
+            </select>
+          </div>
+
+          {formData.listingType === "Broker" && (
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+                  Broker Name
+                </label>
+                <input
+                  type="text"
+                  id="brokerName"
+                  value={formData.brokerName}
+                  placeholder="Enter broker name"
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+                  Broker Contact
+                </label>
+                <input
+                  type="tel"
+                  id="brokerContact"
+                  value={formData.brokerContact}
+                  placeholder="Enter broker contact"
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+                  Brokerage Price
+                </label>
+                <input
+                  type="number"
+                  id="brokeragePrice"
+                  value={formData.brokeragePrice}
+                  placeholder="Enter brokerage price"
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                />
+              </div>
+            </>
+          )}
+
+          {formData.listingType === "Direct Owner" && (
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+                  Owner Name
+                </label>
+                <input
+                  type="text"
+                  id="ownerName"
+                  value={formData.ownerName}
+                  placeholder="Enter owner name"
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+                  Owner Contact
+                </label>
+                <input
+                  type="tel"
+                  id="ownerContact"
+                  value={formData.ownerContact}
+                  placeholder="Enter owner contact"
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                />
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="flex flex-col gap-4">
-          <p className="font-semibold">
-            Images:
-            <span className="font-normal text-gray-600 ml-2">
-              Up to 6 images can be uploaded (required)
+        {/* Right Column */}
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Property Type
+            </label>
+            <select
+              id="propertyType"
+              value={formData.propertyType}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            >
+              <option value="Room">Room</option>
+              <option value="Hostel">Hostel</option>
+              <option value="Flat">Flat</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Room Type
+            </label>
+            <select
+              id="roomType"
+              value={formData.roomType}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            >
+              {roomTypeOptions[formData.propertyType].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          {(formData.propertyType === "Room" ||
+            formData.propertyType === "Hostel") && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+                Available Rooms
+              </label>
+              <input
+                type="number"
+                id="availableRooms"
+                placeholder="Enter number of rooms"
+                value={formData.availableRooms}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                required
+              />
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Location
+            </label>
+            <input
+              type="text"
+              id="location"
+              value={formData.location}
+              placeholder="Enter location"
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              id="phoneNo"
+              value={formData.phoneNo}
+              placeholder="Enter phone number"
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Availability
+            </label>
+            <select
+              id="availability"
+              value={formData.availability}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            >
+              <option value="Available">Available</option>
+              <option value="Not Available">Not Available</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 uppercase mb-1">
+              Gender Preference
+            </label>
+            <select
+              id="genderPreference"
+              value={formData.genderPreference}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              required
+            >
+              <option value="Any">Any</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex items-center text-sm font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                id="parkingAvailable"
+                checked={formData.parkingAvailable}
+                onChange={handleChange}
+                className="mr-2 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              Parking
+            </label>
+            <label className="flex items-center text-sm font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                id="kitchen"
+                checked={formData.kitchen}
+                onChange={handleChange}
+                className="mr-2 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              Kitchen
+            </label>
+            <label className="flex items-center text-sm font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                id="housekeeping"
+                checked={formData.housekeeping}
+                onChange={handleChange}
+                className="mr-2 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              Housekeeping
+            </label>
+            <label className="flex items-center text-sm font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                id="electricityBackup"
+                checked={formData.electricityBackup}
+                onChange={handleChange}
+                className="mr-2 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              Backup
+            </label>
+            <label className="flex items-center text-sm font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                id="laundryServices"
+                checked={formData.laundryServices}
+                onChange={handleChange}
+                className="mr-2 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              Laundry
+            </label>
+            <label className="flex items-center text-sm font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                id="securityGuard"
+                checked={formData.securityGuard}
+                onChange={handleChange}
+                className="mr-2 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              Security
+            </label>
+            <label className="flex items-center text-sm font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                id="cctv"
+                checked={formData.cctv}
+                onChange={handleChange}
+                className="mr-2 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              CCTV
+            </label>
+          </div>
+        </div>
+
+        {/* Full Width Image Section */}
+        <div className="col-span-1 md:col-span-2 bg-white p-6 rounded-lg shadow-md">
+          <p className="text-lg font-semibold text-gray-800 mb-4">
+            Upload Images
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              (Upto 6 images, required)
             </span>
           </p>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
             <input
               onChange={(e) => setFiles(e.target.files)}
-              className="p-3 border border-gray-300 rounded w-full"
+              className="p-3 border border-gray-300 rounded-lg w-full text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               type="file"
               id="images"
               accept="image/*"
@@ -522,30 +611,30 @@ const CreateListing = () => {
               type="button"
               onClick={handleImageSubmit}
               disabled={uploading || !files || files.length === 0}
-              className="p-3 text-green-700 border border-green-700 rounded uppercase hover:shadow-lg disabled:opacity-80"
+              className="p-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg uppercase font-semibold hover:from-green-600 hover:to-green-700 transition duration-200  whitespace-nowrap"
             >
-              {uploading ? "Uploading..." : "Upload"}
+              {uploading ? "Uploading..." : "Upload Images"}
             </button>
           </div>
           {imageUploadError && (
-            <p className="text-red-700 text-sm">{imageUploadError}</p>
+            <p className="text-red-600 text-sm mb-4">{imageUploadError}</p>
           )}
           {formData.image.length > 0 && (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {formData.image.map((url, index) => (
                 <div
                   key={url}
-                  className="flex justify-between p-3 border items-center"
+                  className="flex flex-col items-center p-3 border border-gray-200 rounded-lg bg-gray-50"
                 >
                   <img
                     src={url}
                     alt="listing image"
-                    className="w-20 h-20 object-contain rounded-lg"
+                    className="w-full h-32 object-cover rounded-lg mb-2"
                   />
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(index)}
-                    className="p-3 text-red-700 rounded-lg uppercase hover:opacity-75"
+                    className="text-red-600 font-semibold uppercase hover:text-red-800 transition duration-200"
                   >
                     Delete
                   </button>
@@ -556,7 +645,7 @@ const CreateListing = () => {
           <button
             type="submit"
             disabled={loading || uploading}
-            className="p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
+            className="mt-6 w-full p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg uppercase font-semibold hover:from-blue-600 hover:to-blue-700 transition duration-200 disabled:opacity-50"
           >
             {loading
               ? editingListing
@@ -566,7 +655,7 @@ const CreateListing = () => {
               ? "Update Listing"
               : "Create Listing"}
           </button>
-          {error && <p className="text-red-700 text-sm">{error}</p>}
+          {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
         </div>
       </form>
     </div>
