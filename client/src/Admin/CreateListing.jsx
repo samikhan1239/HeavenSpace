@@ -1,39 +1,45 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const CreateListing = () => {
   const [files, setFiles] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { currentUser, token } = useSelector((state) => state.user);
   const [message, setMessage] = useState("");
 
+  // Check if editing (data passed via state)
+  const editingListing = location.state?.listing || null;
+
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    price: "",
-    discountPrice: "",
-    securityDeposit: "",
-    listingType: "Direct Owner",
-    brokerName: "",
-    brokerContact: "",
-    brokeragePrice: "",
-    ownerName: "",
-    ownerContact: "",
-    propertyType: "Room",
-    roomType: "Single",
-    category: "Room",
-    location: "",
-    imageUrls: [],
-    phoneNo: "",
-    availability: "Available",
-    availableRooms: "",
-    genderPreference: "Any",
-    parkingAvailable: false,
-    kitchen: false,
-    housekeeping: false,
-    electricityBackup: false,
-    laundryServices: false,
-    securityGuard: false,
-    cctv: false,
+    name: editingListing?.name || "",
+    description: editingListing?.description || "",
+    price: editingListing?.price || "",
+    discountPrice: editingListing?.discountPrice || "",
+    securityDeposit: editingListing?.securityDeposit || "",
+    listingType: editingListing?.listingType || "Direct Owner",
+    brokerName: editingListing?.brokerName || "",
+    brokerContact: editingListing?.brokerContact || "",
+    brokeragePrice: editingListing?.brokeragePrice || "",
+    ownerName: editingListing?.ownerName || "",
+    ownerContact: editingListing?.ownerContact || "",
+    propertyType: editingListing?.propertyType || "Room",
+    roomType: editingListing?.roomType || "Single",
+    category: editingListing?.category || "Room",
+    location: editingListing?.location || "",
+    image: editingListing?.image || [], // Pre-fill with existing images
+    phoneNo: editingListing?.phoneNo || "",
+    availability: editingListing?.availability || "Available",
+    availableRooms: editingListing?.availableRooms || "",
+    genderPreference: editingListing?.genderPreference || "Any",
+    parkingAvailable: editingListing?.parkingAvailable || false,
+    kitchen: editingListing?.kitchen || false,
+    housekeeping: editingListing?.housekeeping || false,
+    electricityBackup: editingListing?.electricityBackup || false,
+    laundryServices: editingListing?.laundryServices || false,
+    securityGuard: editingListing?.securityGuard || false,
+    cctv: editingListing?.cctv || false,
   });
   const [imageUploadError, setImageUploadError] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -46,6 +52,21 @@ const CreateListing = () => {
     Flat: ["1 BHK", "2 BHK", "3 BHK", "4 BHK"],
   };
 
+  // Check authentication and role on mount
+  useEffect(() => {
+    if (!token || !currentUser) {
+      setMessage("❌ Please log in to create a listing.");
+      navigate("/sign-in");
+      return;
+    }
+
+    const userRole = currentUser.role;
+    if (!["admin", "superadmin"].includes(userRole)) {
+      setMessage("❌ Only admins and superadmins can create listings.");
+      navigate("/");
+    }
+  }, [currentUser, token, navigate]);
+
   const handleImageSubmit = async (e) => {
     e.preventDefault();
     if (!files || files.length === 0) {
@@ -53,7 +74,7 @@ const CreateListing = () => {
       return;
     }
 
-    if (files.length + formData.imageUrls.length > 6) {
+    if (files.length + formData.image.length > 6) {
       setImageUploadError("You can only upload up to 6 images per listing.");
       return;
     }
@@ -67,10 +88,9 @@ const CreateListing = () => {
       const urls = await Promise.all(promises);
       setFormData((prevData) => ({
         ...prevData,
-        imageUrls: [...prevData.imageUrls, ...urls],
+        image: [...prevData.image, ...urls],
       }));
       setFiles([]);
-      setImageUploadError(false);
     } catch (err) {
       setImageUploadError("Image upload failed (2 MB max)");
     } finally {
@@ -82,7 +102,7 @@ const CreateListing = () => {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset", "heaven"); // Replace with your Cloudinary upload preset
+      formData.append("upload_preset", "heaven");
 
       fetch("https://api.cloudinary.com/v1_1/dgdgowdls/image/upload", {
         method: "POST",
@@ -100,7 +120,7 @@ const CreateListing = () => {
   const handleRemoveImage = (index) => {
     setFormData({
       ...formData,
-      imageUrls: formData.imageUrls.filter((_, i) => i !== index),
+      image: formData.image.filter((_, i) => i !== index),
     });
   };
 
@@ -122,97 +142,80 @@ const CreateListing = () => {
     e.preventDefault();
     setMessage("");
     setLoading(true);
-    console.log("Form Data Before Submission:", formData);
+    setError(false);
 
-    if (
-      !formData.name ||
-      !formData.description ||
-      !formData.price ||
-      !formData.phoneNo ||
-      !formData.category ||
-      !formData.location ||
-      !formData.listingType ||
-      !formData.genderPreference ||
-      formData.imageUrls.length === 0
-    ) {
+    console.log("Form Data Before Submission:", formData);
+    console.log("Current User:", currentUser);
+    console.log("Token:", token);
+
+    // Validate required fields
+    const requiredFields = [
+      "name",
+      "description",
+      "price",
+      "phoneNo",
+      "category",
+      "location",
+      "listingType",
+      "genderPreference",
+    ];
+    const missingFields = requiredFields.filter((field) => !formData[field]);
+    if (missingFields.length > 0 || formData.image.length === 0) {
       setMessage(
-        "❌ Please fill all required fields and upload at least one image."
+        `❌ Please fill all required fields (${missingFields.join(
+          ", "
+        )}) and upload at least one image.`
       );
       setLoading(false);
       return;
     }
 
-    const formDataToSend = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key === "imageUrls" && value.length > 0) {
-        formDataToSend.append("images", JSON.stringify(value));
-      } else {
-        formDataToSend.append(key, String(value));
-      }
-    });
-
-    console.log("FormData to be sent:");
-    for (const [key, value] of formDataToSend.entries()) {
-      console.log(`${key}: ${value}`);
+    if (!token) {
+      setMessage("❌ Please log in to create a listing.");
+      setLoading(false);
+      navigate("/sign-in");
+      return;
     }
 
     try {
-      const res = await fetch("/api/listings/create", {
-        method: "POST",
+      const url = editingListing
+        ? `/api/user/listings/${editingListing._id}`
+        : "/api/listings/create";
+      const method = editingListing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        credentials: "include",
         headers: {
-          // Include JWT token in Authorization header (assuming it's stored in localStorage)
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: formDataToSend,
+        body: JSON.stringify({
+          ...formData,
+          userRef: currentUser._id,
+        }),
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "Failed to create listing");
+        const text = await res.text();
+        console.log("Raw response:", text);
+        throw new Error(text || `HTTP error ${res.status}`);
+      }
+      const data = await res.json();
+      console.log("📌 Full Server Response:", data);
+
+      if (!data.success) {
+        throw new Error(data.message || "Failed to save listing");
       }
 
-      const listingId = data.listing?._id || data.listing?.id;
-      if (!listingId) {
-        throw new Error("No listing ID returned from server");
-      }
-
-      console.log("Server Response:", data);
-
-      navigate(`/listing/${listingId}`);
-      setMessage("🎉 Listing created successfully!");
-
-      setFormData({
-        name: "",
-        description: "",
-        price: "",
-        discountPrice: "",
-        securityDeposit: "",
-        listingType: "Direct Owner",
-        brokerName: "",
-        brokerContact: "",
-        brokeragePrice: "",
-        ownerName: "",
-        ownerContact: "",
-        propertyType: "Room",
-        roomType: "Single",
-        category: "Room",
-        location: "",
-        imageUrls: [],
-        phoneNo: "",
-        availability: "Available",
-        availableRooms: "",
-        genderPreference: "Any",
-        parkingAvailable: false,
-        kitchen: false,
-        housekeeping: false,
-        electricityBackup: false,
-        laundryServices: false,
-        securityGuard: false,
-        cctv: false,
-      });
-      setFiles([]);
-      setError(false);
+      setMessage(
+        editingListing
+          ? "🎉 Listing updated successfully!"
+          : "🎉 Listing created successfully!"
+      );
+      navigate("/admin/listing"); // Navigate back to listings page
     } catch (error) {
+      console.error("Submission Error:", error);
       setMessage(`❌ Error: ${error.message}`);
       setError(true);
     } finally {
@@ -222,7 +225,9 @@ const CreateListing = () => {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">Create Listing</h1>
+      <h1 className="text-2xl font-semibold mb-4">
+        {editingListing ? "Edit Listing" : "Create Listing"}
+      </h1>
       {message && (
         <p
           className={`text-center mb-4 ${
@@ -299,7 +304,6 @@ const CreateListing = () => {
               placeholder="Broker Name"
               onChange={handleChange}
               className="border p-2 rounded"
-              required
             />
             <input
               type="tel"
@@ -308,7 +312,6 @@ const CreateListing = () => {
               placeholder="Broker Contact No."
               onChange={handleChange}
               className="border p-2 rounded"
-              required
             />
             <input
               type="number"
@@ -330,7 +333,6 @@ const CreateListing = () => {
               placeholder="Owner Name"
               onChange={handleChange}
               className="border p-2 rounded"
-              required
             />
             <input
               type="tel"
@@ -339,7 +341,6 @@ const CreateListing = () => {
               placeholder="Owner Contact No."
               onChange={handleChange}
               className="border p-2 rounded"
-              required
             />
           </>
         )}
@@ -503,7 +504,7 @@ const CreateListing = () => {
           <p className="font-semibold">
             Images:
             <span className="font-normal text-gray-600 ml-2">
-              Up to 6 images can be uploaded
+              Up to 6 images can be uploaded (required)
             </span>
           </p>
           <div className="flex gap-4">
@@ -515,7 +516,7 @@ const CreateListing = () => {
               accept="image/*"
               multiple
               disabled={uploading}
-              required
+              required={formData.image.length === 0 && !editingListing}
             />
             <button
               type="button"
@@ -529,9 +530,9 @@ const CreateListing = () => {
           {imageUploadError && (
             <p className="text-red-700 text-sm">{imageUploadError}</p>
           )}
-          {formData.imageUrls.length > 0 && (
+          {formData.image.length > 0 && (
             <div className="space-y-2">
-              {formData.imageUrls.map((url, index) => (
+              {formData.image.map((url, index) => (
                 <div
                   key={url}
                   className="flex justify-between p-3 border items-center"
@@ -557,7 +558,13 @@ const CreateListing = () => {
             disabled={loading || uploading}
             className="p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
           >
-            {loading ? "Creating..." : "Create Listing"}
+            {loading
+              ? editingListing
+                ? "Updating..."
+                : "Creating..."
+              : editingListing
+              ? "Update Listing"
+              : "Create Listing"}
           </button>
           {error && <p className="text-red-700 text-sm">{error}</p>}
         </div>

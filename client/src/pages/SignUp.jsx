@@ -1,10 +1,14 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { signInSuccess } from "../redux/user/userSlice"; // Adjust path
 
 const SignUp = () => {
-  const [formData, setFormData] = useState({ role: "" }); // Default role empty
-  const [error, setError] = useState(""); // Error handling
-  const [successMessage, setSuccessMessage] = useState(""); // Success message
+  const [formData, setFormData] = useState({ role: "" });
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     setFormData({
@@ -19,8 +23,8 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Reset error message
-    setSuccessMessage(""); // Reset success message
+    setError("");
+    setSuccessMessage("");
 
     if (!formData.role) {
       setError("⚠️ Please select whether you want to Buy or Sell Property.");
@@ -34,21 +38,37 @@ const SignUp = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
+        credentials: "include",
       });
 
-      const data = await res.json(); // Get response JSON
+      const data = await res.json();
+      console.log("Signup Response Data:", data);
 
       if (!res.ok) {
         throw new Error(data.message || `HTTP error! Status: ${res.status}`);
       }
 
-      setSuccessMessage("🎉 Registration successful! Redirecting...");
-      console.log("Signup successful:", data);
+      if (!data.token || !data.user) {
+        throw new Error("Invalid response: Missing token or user data");
+      }
 
+      // Dispatch to Redux
+      dispatch(
+        signInSuccess({
+          user: data.user, // { id: '67d91d4bab6aa90232fc8c88', ... }
+          token: data.token,
+        })
+      );
+
+      console.log("✅ Signup successful:", data);
+      console.log("✅ Token received:", data.token);
+
+      setSuccessMessage("🎉 Registration successful! Redirecting...");
       setTimeout(() => {
-        window.location.href = "/sign-in"; // Redirect after success
+        navigate("/sign-in"); // Use navigate for React Router
       }, 2000);
     } catch (error) {
+      console.error("❌ Signup failed:", error.message);
       setError(`❌ Signup failed: ${error.message}`);
     }
   };
@@ -82,7 +102,6 @@ const SignUp = () => {
           required
         />
 
-        {/* Role Selection - Two Buttons */}
         <div className="flex gap-4">
           <button
             type="button"
@@ -108,7 +127,6 @@ const SignUp = () => {
           </button>
         </div>
 
-        {/* Show Error Messages */}
         {error && <p className="text-red-500 text-center">{error}</p>}
         {successMessage && (
           <p className="text-green-500 text-center">{successMessage}</p>

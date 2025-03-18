@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   currentUser: null,
+  token: null, // Add token to state
   error: null,
   loading: false,
 };
@@ -12,9 +13,11 @@ const userSlice = createSlice({
   reducers: {
     signInStart: (state) => {
       state.loading = true;
+      state.error = null; // Reset error on start
     },
     signInSuccess: (state, action) => {
-      state.currentUser = action.payload;
+      state.currentUser = action.payload.user; // Store user data
+      state.token = action.payload.token; // Store token separately
       state.loading = false;
       state.error = null;
     },
@@ -24,9 +27,10 @@ const userSlice = createSlice({
     },
     updateUserStart: (state) => {
       state.loading = true;
+      state.error = null;
     },
     updateUserSuccess: (state, action) => {
-      state.currentUser = action.payload;
+      state.currentUser = action.payload; // Update user data only
       state.loading = false;
       state.error = null;
     },
@@ -36,9 +40,11 @@ const userSlice = createSlice({
     },
     deleteUserStart: (state) => {
       state.loading = true;
+      state.error = null;
     },
     deleteUserSuccess: (state) => {
       state.currentUser = null;
+      state.token = null; // Clear token on delete
       state.loading = false;
       state.error = null;
     },
@@ -48,9 +54,11 @@ const userSlice = createSlice({
     },
     signOutUserStart: (state) => {
       state.loading = true;
+      state.error = null;
     },
     signOutUserSuccess: (state) => {
       state.currentUser = null;
+      state.token = null; // Clear token on signout
       state.loading = false;
       state.error = null;
     },
@@ -65,15 +73,15 @@ export const {
   signInStart,
   signInSuccess,
   signInFailure,
-  updateUserFailure,
-  updateUserSuccess,
   updateUserStart,
-  deleteUserFailure,
-  deleteUserSuccess,
+  updateUserSuccess,
+  updateUserFailure,
   deleteUserStart,
-  signOutUserFailure,
-  signOutUserSuccess,
+  deleteUserSuccess,
+  deleteUserFailure,
   signOutUserStart,
+  signOutUserSuccess,
+  signOutUserFailure,
 } = userSlice.actions;
 
 export default userSlice.reducer;

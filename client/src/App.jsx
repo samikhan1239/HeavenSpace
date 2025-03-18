@@ -9,6 +9,9 @@ import Header from "./components/Header";
 import { Admin } from "./Admin/Admin";
 import { SuperAdmin } from "./SuperAdmin/SuperAdmin";
 import CreateListing from "./Admin/CreateListing";
+import Listings from "./Admin/Listings";
+import ListingDetail from "./Admin/ListingDetail";
+import UserListings from "./Admin/Listings";
 
 export default function App() {
   return (
@@ -20,8 +23,10 @@ export default function App() {
         <Route path="/sign-up" element={<SignUp />}></Route>
         <Route path="/about" element={<About />}></Route>
         <Route path="/profile" element={<Profile />}></Route>
+        <Route path="/listing/:id" element={<ListingDetail />} />
         <Route path="/admin" element={<Admin />}>
           <Route path="create-listing" element={<CreateListing />} />
+          <Route path="listing" element={<UserListings />} />
         </Route>
         <Route path="/super-admin" element={<SuperAdmin />}></Route>
       </Routes>

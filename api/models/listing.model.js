@@ -58,6 +58,10 @@ const listingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    userRef: {
+      type: String,
+    },
+
     metaTitle: { type: String },
     metaDescription: { type: String },
     metaKeywords: { type: String },

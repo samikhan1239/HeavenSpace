@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   signInStart,
   signInSuccess,
@@ -10,18 +10,25 @@ import {
 const SignIn = () => {
   const [formData, setFormData] = useState({});
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState(""); // Success message state
+  const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { loading } = useSelector((state) => state.user); // Access loading state
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
+    setFormData({ ...formData, [e.target.id]: e.target.value.trim() });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccessMessage(""); // Reset success message
+    setSuccessMessage("");
+
+    // Validate input
+    if (!formData.email || !formData.password) {
+      setError("❌ Email and password are required");
+      return;
+    }
 
     try {
       dispatch(signInStart());
@@ -30,31 +37,59 @@ const SignIn = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
+        credentials: "include",
       });
 
+      if (!res.ok) {
+        const text = await res.text();
+        console.log("Raw signin response:", text);
+        throw new Error(text || `HTTP error! Status: ${res.status}`);
+      }
+
       const data = await res.json();
-      if (!res.ok)
-        throw new Error(data.message || `HTTP error! Status: ${res.status}`);
+      if (!data.success) {
+        throw new Error(data.message || "Signin failed");
+      }
 
-      dispatch(signInSuccess(data));
+      if (!data.token || !data.user) {
+        throw new Error("Invalid response: Missing token or user data");
+      }
 
-      setSuccessMessage("🎉 Login successful! Redirecting..."); // Display success message
+      // Dispatch user and token separately
+      dispatch(
+        signInSuccess({
+          user: data.user,
+          token: data.token,
+        })
+      );
+
+      // Optional: Store token in localStorage for persistence
+      localStorage.setItem("token", data.token);
+
+      setSuccessMessage("🎉 Login successful! Redirecting...");
       console.log("Signin successful:", data);
-      const userRole = data?.user?.role; // Ensure `data.user` exists
 
-      // Redirect after showing success message
+      const userRole = data.user?.role;
       setTimeout(() => {
-        if (userRole === "admin") {
-          navigate("/admin");
-        } else if (userRole === "superadmin") {
-          navigate("/super-admin");
-        } else {
-          navigate("/");
+        switch (userRole) {
+          case "superadmin":
+            navigate("/super-admin");
+            break;
+          case "admin":
+            navigate("/create-listing"); // Align with your requirement
+            break;
+          case "user":
+            navigate("/"); // Users view listings
+            break;
+          default:
+            console.warn("Unknown role:", userRole);
+            navigate("/");
         }
-      }, 2000); // Delay redirection for user feedback
+      }, 2000);
     } catch (error) {
       dispatch(signInFailure(error.message));
       setError(`❌ Signin failed: ${error.message}`);
+      console.error("Signin error:", error);
     }
   };
 
@@ -85,13 +120,16 @@ const SignIn = () => {
           <p className="text-green-500 text-center">{successMessage}</p>
         )}
 
-        <button className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95">
-          Sign In
+        <button
+          disabled={loading}
+          className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
+        >
+          {loading ? "Signing In..." : "Sign In"}
         </button>
       </form>
 
       <div className="flex gap-2 mt-5">
-        <p> Don't have an account?</p>
+        <p>Don't have an account?</p>
         <Link to="/sign-up">
           <span className="text-blue-700">Sign Up</span>
         </Link>
