@@ -6,6 +6,8 @@ import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import listingRouter from "./routes/listing.route.js";
 import cookieParser from "cookie-parser";
+import adminRoutes from "./routes/admin.route.js";
+import paymentRoutes from "./routes/payment.route.js";
 
 mongoose
   .connect(process.env.MONGO)
@@ -24,9 +26,12 @@ app.listen(3000, () => {
 });
 
 app.use("/api/user", userRouter);
+
 app.use("/api/auth", authRouter);
 
 app.use("/api/listings", listingRouter);
+app.use("/api/admin", adminRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;

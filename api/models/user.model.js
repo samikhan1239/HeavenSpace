@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema(
     },
     transactionId: { type: String, default: null }, // ✅ Store transaction ID
     isActive: { type: Boolean, default: true }, // Account status
+    payment_amount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

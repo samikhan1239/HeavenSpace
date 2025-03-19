@@ -64,6 +64,7 @@ const SignIn = () => {
       localStorage.setItem("token", data.token);
 
       setSuccessMessage("🌌 Welcome aboard! Redirecting...");
+      console.log("Signin successful, user:", data.user);
       console.log("Signin successful:", data);
 
       const userRole = data.user?.role;
