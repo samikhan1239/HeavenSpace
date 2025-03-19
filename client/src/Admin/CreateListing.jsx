@@ -128,7 +128,7 @@ const CreateListing = () => {
     const { id, value, type, checked } = e.target;
     setFormData((prevData) => ({
       ...prevData,
-      [id]: type === "checkbox" ? checked : value.trim(),
+      [id]: type === "checkbox" ? checked : value,
       ...(id === "propertyType" &&
         roomTypeOptions[value] && {
           roomType: roomTypeOptions[value][0],
