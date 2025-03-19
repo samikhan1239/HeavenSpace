@@ -109,29 +109,31 @@ const SignIn = () => {
           {/* Taglines */}
           <div className="space-y-3">
             <p className="text-gray-100 text-2xl font-semibold animate-fadeIn delay-400">
-              Your Cosmic Adventure Awaits
+              Your Ultimate Rental Destination
             </p>
             <p className="text-gray-300 text-lg animate-fadeIn delay-600">
-              Explore the infinite, create the extraordinary.
+              Find the perfect space to live, work, or stay.
             </p>
           </div>
           {/* Points - No Animated Dots */}
           <ul className="text-gray-200 space-y-5 text-lg">
             <li className="flex items-center gap-4 animate-slideUp delay-800">
               <span className="w-3 h-3 bg-cyan-400 rounded-full" />
-              <span>Unveil a universe of celestial listings.</span>
+              <span>Explore listings for rooms, flats, and hostels.</span>
             </li>
             <li className="flex items-center gap-4 animate-slideUp delay-1000">
               <span className="w-3 h-3 bg-purple-400 rounded-full" />
-              <span>Shape your own stellar creations.</span>
+              <span>
+                List your property and reach potential tenants effortlessly.
+              </span>
             </li>
             <li className="flex items-center gap-4 animate-slideUp delay-1200">
               <span className="w-3 h-3 bg-pink-300 rounded-full" />
-              <span>Connect across the galaxy with dreamers.</span>
+              <span>Connect with trusted renters and property owners.</span>
             </li>
             <li className="flex items-center gap-4 animate-slideUp delay-1400">
               <span className="w-3 h-3 bg-blue-300 rounded-full" />
-              <span>Experience the magic of the cosmos.</span>
+              <span>Find your ideal space with ease and confidence.</span>
             </li>
           </ul>
         </div>
@@ -156,7 +158,7 @@ const SignIn = () => {
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <input
               type="email"
-              placeholder="Enter your cosmic email..."
+              placeholder="Enter your email address"
               className="bg-white/5 border border-white/20 p-4 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white/10 transition-all duration-300"
               id="email"
               onChange={handleChange}
@@ -164,7 +166,7 @@ const SignIn = () => {
             />
             <input
               type="password"
-              placeholder="Your secret stardust..."
+              placeholder="Password"
               className="bg-white/5 border border-white/20 p-4 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:bg-white/10 transition-all duration-300"
               id="password"
               onChange={handleChange}
