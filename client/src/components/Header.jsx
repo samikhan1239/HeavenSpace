@@ -1,7 +1,9 @@
 import React from "react";
 import { FaSearch } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { useSelector } from "react-redux"; // Import useSelector to access the Redux store
+
 const logoVariants = {
   hidden: { scale: 0.8, opacity: 0 },
   visible: {
@@ -17,9 +19,11 @@ const logoVariants = {
 };
 
 export default function Header() {
+  const { currentUser } = useSelector((state) => state.user); // Access the current user from Redux
+
   return (
     <header className="bg-gradient-to-r from-indigo-900 via-purple-900 to-blue-900 shadow-lg text-white">
-      <div className="flex items-center justify-between w-full  p-4">
+      <div className="flex items-center justify-between w-full p-4">
         <div className="flex items-center gap-4 flex-shrink-0">
           {/* Logo - Left */}
           <motion.div
@@ -70,12 +74,16 @@ export default function Header() {
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
             </li>
           </Link>
-          <Link to="/admin">
-            <li className="hidden sm:inline text-gray-200 font-medium hover:text-cyan-300 transition-all duration-300 hover:scale-110 relative group">
-              Admin
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-            </li>
-          </Link>
+          {/* Conditionally render the Admin button */}
+          {(currentUser?.role === "admin" ||
+            currentUser?.role === "superadmin") && (
+            <Link to="/admin">
+              <li className="hidden sm:inline text-gray-200 font-medium hover:text-cyan-300 transition-all duration-300 hover:scale-110 relative group">
+                Admin
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+              </li>
+            </Link>
+          )}
           <Link to="/sign-in">
             <li className="text-gray-200 font-medium hover:text-cyan-300 transition-all duration-300 hover:scale-110 bg-white/10 px-4 py-2 rounded-full hover:bg-white/20">
               Sign In
