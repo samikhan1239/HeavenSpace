@@ -8,6 +8,7 @@ import listingRouter from "./routes/listing.route.js";
 import cookieParser from "cookie-parser";
 import adminRoutes from "./routes/admin.route.js";
 import paymentRoutes from "./routes/payment.route.js";
+import path from "path";
 
 mongoose
   .connect(process.env.MONGO)
@@ -17,6 +18,8 @@ mongoose
   .catch((err) => {
     console.log(err);
   });
+
+const __dirname = path.resolve();
 const app = express();
 
 app.use(express.json());
@@ -32,6 +35,12 @@ app.use("/api/auth", authRouter);
 app.use("/api/listings", listingRouter);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paymentRoutes);
+
+app.use(express.static(path.join(__dirname, "/client/dist")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "dist", "index.html"));
+});
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
