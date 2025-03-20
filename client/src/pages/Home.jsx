@@ -43,6 +43,18 @@ const heroSlides = [
     image: "/hero-bg10.jpg",
   },
 ];
+const coFounders = [
+  {
+    name: "Alexandra Lee",
+    role: "Co-Founder & CEO",
+    image: "/cofounder1.jpg", // Replace with actual image path
+  },
+  {
+    name: "James Carter",
+    role: "Co-Founder & CTO",
+    image: "/cofounder2.jpg", // Replace with actual image path
+  },
+];
 
 const features = [
   {
@@ -65,27 +77,27 @@ const features = [
 // Mock destinations
 const destinations = [
   {
-    name: "New York",
-    properties: 120,
-    image: "/ny.jpg",
+    name: "Vallabh Nagar",
+    properties: 100,
+    image: "/val.png",
     icon: <FaMapPin className="h-5 w-5" />,
   },
   {
-    name: "Paris",
+    name: "New Palasia",
     properties: 85,
-    image: "/paris.jpg",
+    image: "/pal.jpg",
     icon: <FaMapPin className="h-5 w-5" />,
   },
   {
-    name: "Tokyo",
+    name: "LIG Square",
     properties: 95,
-    image: "/tokyo.jpg",
+    image: "/lig.jpg",
     icon: <FaMapPin className="h-5 w-5" />,
   },
   {
-    name: "Sydney",
+    name: "Bhawarkua",
     properties: 70,
-    image: "/sydney.jpg",
+    image: "/bho.jpg",
     icon: <FaMapPin className="h-5 w-5" />,
   },
 ];
@@ -166,16 +178,7 @@ const faqs = [
     answer:
       "Simply browse our listings, select your preferred property, and follow the easy booking steps online.",
   },
-  {
-    question: "What payment methods do you accept?",
-    answer:
-      "We accept all major credit cards, PayPal, and bank transfers for your convenience.",
-  },
-  {
-    question: "Can I cancel my booking?",
-    answer:
-      "Yes, cancellations are allowed up to 48 hours before check-in with a full refund, subject to the property's policy.",
-  },
+
   {
     question: "Are pets allowed in the properties?",
     answer:
@@ -200,12 +203,11 @@ const faqs = [
 
 // Assuming this is part of your component
 const partners = [
-  { name: "Partner 1", image: "/partners/partner1.png" },
-  { name: "Partner 2", image: "/partners/partner2.png" },
-  { name: "Partner 3", image: "/partners/partner3.png" },
-  { name: "Partner 4", image: "/partners/partner4.png" },
-  { name: "Partner 5", image: "/partners/partner5.png" },
-  { name: "Partner 6", image: "/partners/partner5.png" },
+  { name: "Partner 1", image: "/brand1.jpeg" },
+  { name: "Partner 2", image: "/brand6.jpeg" },
+  { name: "Partner 3", image: "/brand7.jpeg" },
+  { name: "Partner 4", image: "/brand3.jpeg" },
+  { name: "Partner 5", image: "/brand8.jpeg" },
 ];
 
 // Mock featured listings for slider
@@ -310,118 +312,6 @@ const Home = () => {
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-blue-50 to-white text-gray-800">
       {/* Navigation */}
-
-      <motion.header
-        className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md shadow-md"
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-3">
-              <motion.div
-                initial={{ rotate: -10, scale: 0.9 }}
-                animate={{ rotate: 0, scale: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <div className="relative h-12 w-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
-                  <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center">
-                    <span className="text-blue-600 font-bold text-xl">HS</span>
-                  </div>
-                </div>
-              </motion.div>
-              <motion.span
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-2xl font-extrabold text-gray-900 tracking-tight"
-              >
-                Heaven Space
-              </motion.span>
-            </Link>
-
-            <nav className="hidden md:flex items-center space-x-10">
-              {["Home", "Rooms", "Hostels", "Hotels", "About", "Contact"].map(
-                (item, index) => (
-                  <motion.div
-                    key={item}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index, duration: 0.5 }}
-                  >
-                    <Link
-                      to={`#${item.toLowerCase()}`}
-                      className="text-base font-semibold text-gray-700 hover:text-blue-600 transition-colors duration-300"
-                    >
-                      {item}
-                    </Link>
-                  </motion.div>
-                )
-              )}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-              >
-                <Link
-                  to="/sign-in"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-6 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
-                >
-                  Sign In
-                </Link>
-              </motion.div>
-            </nav>
-
-            <button
-              className="md:hidden text-gray-800 focus:outline-none"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <FaX size={28} /> : <FaBars size={28} />}
-            </button>
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-white shadow-xl"
-            >
-              <div className="container mx-auto px-4 py-6">
-                <nav className="flex flex-col space-y-6">
-                  {[
-                    "Home",
-                    "Rooms",
-                    "Hostels",
-                    "Hotels",
-                    "About",
-                    "Contact",
-                  ].map((item) => (
-                    <Link
-                      key={item}
-                      to={`#${item.toLowerCase()}`}
-                      className="text-base font-semibold text-gray-700 hover:text-blue-600 transition-colors py-2"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {item}
-                    </Link>
-                  ))}
-                  <Link
-                    to="/sign-in"
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-full text-center shadow-lg transition-all duration-300"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Sign In
-                  </Link>
-                </nav>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.header>
 
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         {/* Background Slides */}
@@ -664,127 +554,8 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="py-24 bg-white relative z-10" id="rooms">
-        <div className="container mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-16"
-          >
-            <span className="inline-block bg-blue-100 text-blue-600 px-6 py-2 rounded-full text-sm font-semibold mb-6 shadow-md">
-              Featured Rentals
-            </span>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Discover Our Top Picks
-            </h2>
-            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-              Explore our handpicked selection of premium accommodations
-            </p>
-          </motion.div>
-
-          <div className="relative max-w-6xl mx-auto">
-            <AnimatePresence mode="wait">
-              {groupedListings.map(
-                (group, groupIndex) =>
-                  groupIndex === currentFeaturedSlide && (
-                    <motion.div
-                      key={groupIndex}
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -50 }}
-                      transition={{ duration: 0.5 }}
-                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                    >
-                      {group.map((listing) => (
-                        <motion.div
-                          key={listing.id}
-                          whileHover={{ y: -8, scale: 1.03 }}
-                          className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl overflow-hidden shadow-xl transform transition-all duration-300"
-                        >
-                          <div className="relative h-48">
-                            <img
-                              src={listing.image || "/placeholder.svg"}
-                              alt={listing.title}
-                              className="object-cover w-full h-full transition-transform duration-500 hover:scale-105"
-                            />
-                            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-semibold text-gray-800 flex items-center shadow-md">
-                              <FaStar className="h-4 w-4 text-yellow-500 mr-1" />
-                              {listing.rating || "4.8"} (
-                              {listing.reviews || "150"})
-                            </div>
-                          </div>
-                          <div className="p-5">
-                            <h3 className="text-lg font-bold text-gray-900 mb-2 truncate">
-                              {listing.title}
-                            </h3>
-                            <div className="flex items-center text-gray-600 mb-3">
-                              <FaMapPin className="h-4 w-4 mr-2 text-blue-500" />
-                              <span className="text-sm">
-                                {listing.location}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-lg font-semibold text-gray-900">
-                                {listing.price || "$120/night"}
-                              </span>
-                              <Link
-                                to={`/listings/${listing.id}`}
-                                onClick={(e) =>
-                                  handleLinkClick(e, `/listings/${listing.id}`)
-                                }
-                                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium py-1.5 px-4 rounded-full hover:from-blue-600 hover:to-purple-600 transition duration-300 shadow-md hover:shadow-lg text-sm"
-                              >
-                                View
-                              </Link>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  )
-              )}
-            </AnimatePresence>
-
-            {/* Slider Controls */}
-            <div className="flex justify-center mt-8 space-x-3">
-              {groupedListings.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentFeaturedSlide(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === currentFeaturedSlide
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 w-8"
-                      : "bg-gray-300 hover:bg-gray-400"
-                  }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-12 text-center"
-          >
-            <Link
-              to="/listings"
-              onClick={(e) => handleLinkClick(e, "/listings")}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-8 rounded-full hover:from-blue-700 hover:to-purple-700 transition duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 inline-flex items-center"
-            >
-              View All Properties
-              <FaArrowRight className="ml-3 h-5 w-5" />
-            </Link>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Popular Destinations */}
-      <section className="py-24 bg-gradient-to-b from-blue-50 to-white relative z-10">
+      <section className="py-10 bg-gradient-to-b from-blue-50 to-white relative z-10">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -796,7 +567,7 @@ const Home = () => {
             <span className="inline-block bg-purple-100 text-purple-600 px-6 py-2 rounded-full text-sm font-semibold mb-6 shadow-md">
               Explore Destinations
             </span>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500 bg-clip-text text-transparent mb-4 ">
               Popular Destinations
             </h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">
@@ -843,7 +614,7 @@ const Home = () => {
 
       {/* How It Works */}
 
-      <section className="py-24 bg-gradient-to-br from-gray-50 to-blue-50 relative z-10 overflow-hidden">
+      <section className="py-16 bg-gradient-to-br from-gray-50 to-blue-50 relative z-10 overflow-hidden">
         <div className="w-full px-6">
           {/* Header Section */}
           <motion.div
@@ -1029,7 +800,7 @@ const Home = () => {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="py-24 bg-blue-50 relative z-10">
+      <section className="py-16 bg-blue-50 relative z-10">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1041,7 +812,7 @@ const Home = () => {
             <span className="inline-block bg-orange-100 text-orange-600 px-6 py-2 rounded-full text-sm font-semibold mb-6 shadow-md">
               Our Benefits
             </span>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500 bg-clip-text text-transparent mb-4 tracking-tight">
               Why Choose Us?
             </h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">
@@ -1077,7 +848,7 @@ const Home = () => {
       {/* Testimonials */}
 
       <section
-        className="py-24 bg-gradient-to-br from-gray-50 to-blue-50 relative z-10 overflow-hidden"
+        className="py-16 bg-gradient-to-br from-gray-50 to-blue-50 relative z-10 overflow-hidden"
         id="testimonials"
       >
         <div className="w-full px-6">
@@ -1203,7 +974,7 @@ const Home = () => {
 
       {/* FAQ Section */}
 
-      <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50 relative z-10 overflow-hidden">
+      <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50 relative z-10 overflow-hidden">
         <div className="container mx-auto px-4">
           {/* Header */}
           <motion.div
@@ -1370,7 +1141,7 @@ const Home = () => {
                   y: -10,
                   boxShadow: "0 15px 30px rgba(0, 0, 0, 0.1)",
                 }}
-                className="grayscale hover:grayscale-0 transition-all duration-300 rounded-lg overflow-hidden bg-white p-4 shadow-md hover:shadow-lg border border-gray-100/50 group"
+                className=" transition-all duration-300 rounded-lg overflow-hidden bg-white p-4 shadow-md hover:shadow-lg border border-gray-100/50 group"
               >
                 <motion.img
                   src={partner.image || "/placeholder.svg"}
@@ -1397,7 +1168,7 @@ const Home = () => {
       </section>
 
       {/* Newsletter */}
-      <section className="py-20 bg-gradient-to-r from-blue-500 to-purple-600 relative z-10">
+      <section className="py-16 bg-gradient-to-r from-blue-500 to-purple-600 relative z-10">
         <div className="container mx-auto px-4">
           <motion.div
             className="max-w-3xl mx-auto text-center"
@@ -1435,7 +1206,7 @@ const Home = () => {
       </section>
 
       {/* Call to Action */}
-      <section className="py-20 bg-white relative z-10">
+      <section className="py-16 bg-white relative z-10">
         <div className="container mx-auto px-4">
           <motion.div
             className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 md:p-12 text-center shadow-xl"
@@ -1462,109 +1233,6 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 bg-gray-900 text-white relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div>
-              <Link to="/" className="flex items-center space-x-2 mb-4">
-                <div className="relative h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
-                  <div className="absolute inset-1 rounded-full bg-gray-900"></div>
-                </div>
-                <span className="text-lg font-bold">Heaven Space</span>
-              </Link>
-              <p className="text-gray-400 mb-4">
-                Your gateway to comfortable and luxurious accommodations around
-                the world.
-              </p>
-              <div className="flex space-x-4">
-                {["twitter", "facebook", "instagram", "linkedin"].map(
-                  (social) => (
-                    <Link
-                      key={social}
-                      to={`#${social}`}
-                      className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-colors"
-                    >
-                      <span className="sr-only">{social}</span>
-                      {/* Social icons would go here */}
-                    </Link>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2">
-                {[
-                  "Home",
-                  "About Us",
-                  "Rooms",
-                  "Hostels",
-                  "Hotels",
-                  "Contact",
-                ].map((link) => (
-                  <li key={link}>
-                    <Link
-                      to={`#${link.toLowerCase().replace(/\s+/g, "-")}`} // Changed href to to for react-router-dom
-                      className="text-gray-400 hover:text-white transition-colors"
-                    >
-                      {link}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Support</h3>
-              <ul className="space-y-2">
-                {[
-                  "FAQ",
-                  "Help Center",
-                  "Cancellation Policy",
-                  "Safety Information",
-                  "Accessibility",
-                ].map((link) => (
-                  <li key={link}>
-                    <Link
-                      to={`#${link.toLowerCase().replace(/\s+/g, "-")}`} // Changed href to to for react-router-dom
-                      className="text-gray-400 hover:text-white transition-colors"
-                    >
-                      {link}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
-              <address className="not-italic text-gray-400 space-y-2">
-                <p className="flex items-center">
-                  <FaMapPin className="h-5 w-5 mr-2 text-blue-400" />
-                  123 Serenity Lane, Paradise City
-                </p>
-                <p className="flex items-center">
-                  <FaMailBulk className="h-5 w-5 mr-2 text-blue-400" />{" "}
-                  {/* Using FaMailBulk from fa */}
-                  support@heavenspace.com
-                </p>
-                <p className="flex items-center">
-                  <FaChevronCircleRight className="h-5 w-5 mr-2 text-blue-400" />{" "}
-                  {/* Using FaChevronCircleRight as a placeholder */}
-                  +1-800-RENTALS
-                </p>
-              </address>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500 text-sm">
-            <p>
-              © {new Date().getFullYear()} Heaven Space. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

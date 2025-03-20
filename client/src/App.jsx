@@ -17,6 +17,7 @@ import Superadmin from "./SuperAdmin/SuperAdmin";
 import PropertyDetail from "./pages/Propertydetail";
 import SuperAdminListings from "./SuperAdmin/SuperAdminListing";
 import SuperAdminDashboard from "./SuperAdmin/SuperAdminDashBoard";
+import Footer from "./components/Footer";
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="listings" element={<SuperAdminListings />} />
         </Route>
       </Routes>
+      <Footer />
     </BrowserRouter>
   );
 }

@@ -195,10 +195,7 @@ const Property = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {/* Header */}
-      <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg flex justify-between items-center lg:rounded-b-2xl">
-        <h1 className="text-4xl font-extrabold text-gray-900 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          Available Properties
-        </h1>
+      <div className="p-6  flex justify-between items-center lg:rounded-b-2xl">
         <motion.button
           onClick={() => setIsFilterOpen(!isFilterOpen)}
           className="p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-all duration-300 shadow-md lg:hidden"

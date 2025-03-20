@@ -2,13 +2,11 @@ import React, { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 
 export const Admin = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Closed by default on mobile
   const navigate = useNavigate();
 
-  // Function to handle programmatic navigation
   const handleNavigation = (path) => {
     navigate(path);
-    // Close sidebar on mobile after navigation
     if (window.innerWidth < 1024) {
       setIsSidebarOpen(false);
     }
@@ -20,10 +18,9 @@ export const Admin = () => {
       <div
         className={`fixed inset-y-0 left-0 transform ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } w-72 bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white transition-all duration-300 ease-in-out z-20 lg:relative lg:translate-x-0`}
+        } w-72 bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white transition-all duration-300 ease-in-out z-50 lg:relative lg:translate-x-0`}
       >
         <div className="flex flex-col h-full p-6">
-          {/* Sidebar Header */}
           <div className="flex items-center justify-between mb-10">
             <h2 className="text-2xl font-extrabold tracking-tight">
               Admin Hub
@@ -48,7 +45,6 @@ export const Admin = () => {
             </button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1">
             <ul className="space-y-2">
               {[
@@ -56,11 +52,6 @@ export const Admin = () => {
                   to: "/admin",
                   icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6",
                   label: "Home",
-                },
-                {
-                  to: "/admin/add",
-                  icon: "M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z",
-                  label: "Add Item",
                 },
                 {
                   to: "/admin/create-listing",
@@ -105,11 +96,10 @@ export const Admin = () => {
             </ul>
           </nav>
 
-          {/* Footer */}
           <div className="mt-auto pt-6 border-t border-indigo-800/50">
             <button
               className="w-full flex items-center p-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-              onClick={() => handleNavigation("/logout")} // Add your logout route
+              onClick={() => handleNavigation("/logout")}
             >
               <svg
                 className="w-5 h-5 mr-3"
@@ -132,8 +122,9 @@ export const Admin = () => {
 
       {/* Mobile Menu Toggle */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-30 p-2 bg-indigo-600 rounded-full text-white"
-        onClick={() => setIsSidebarOpen(true)}
+        className={`fixed top-16 left-4 z-50 p-3 bg-indigo-600 rounded-full text-white shadow-lg transition-opacity duration-300 ${
+          isSidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+        } lg:hidden`}
       >
         <svg
           className="w-6 h-6"
@@ -150,8 +141,16 @@ export const Admin = () => {
         </svg>
       </button>
 
+      {/* Overlay for Mobile */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
-      <div className="flex-1 p-6 lg:p-8 overflow-auto">
+      <div className="flex-1 pt-24 p-6 lg:p-8 lg:pt-8 overflow-auto">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl lg:text-4xl font-bold text-gray-800 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
@@ -178,7 +177,6 @@ export const Admin = () => {
                   />
                 </svg>
               </div>
-              {/* Quick Add Button */}
               <button
                 onClick={() => handleNavigation("/admin/create-listing")}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors flex items-center"
