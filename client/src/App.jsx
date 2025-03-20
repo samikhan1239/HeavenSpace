@@ -16,6 +16,7 @@ import Property from "./pages/Property";
 import Superadmin from "./SuperAdmin/SuperAdmin";
 import PropertyDetail from "./pages/Propertydetail";
 import SuperAdminListings from "./SuperAdmin/SuperAdminListing";
+import SuperAdminDashboard from "./SuperAdmin/SuperAdminDashBoard";
 
 export default function App() {
   return (
@@ -25,14 +26,15 @@ export default function App() {
         <Route path="/" element={<Home />}></Route>
         <Route path="/sign-in" element={<Signin />}></Route>
         <Route path="/sign-up" element={<SignUp />}></Route>
-        <Route path="/about" element={<Property />}></Route>
+        <Route path="/listings" element={<Property />}></Route>
         <Route path="/profile" element={<Profile />}></Route>
         <Route path="/property/:id" element={<PropertyDetail />} />
         <Route path="/admin" element={<Admin />}>
           <Route path="create-listing" element={<CreateListing />} />
           <Route path="listing" element={<UserListings />} />
         </Route>
-        <Route path="/super-admin" element={<SuperAdminListings />}>
+        <Route path="/super-admin" element={<SuperAdminDashboard />}>
+          <Route path="price" element={<Superadmin />} />
           <Route path="listings" element={<SuperAdminListings />} />
         </Route>
       </Routes>

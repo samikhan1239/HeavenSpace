@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react"; // Import useRef
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setListings } from "../redux/listings/listingSlice";
@@ -24,6 +22,8 @@ const Property = () => {
     priceMax: 20000,
     amenities: [],
   });
+
+  const filterRef = useRef(null); // Create a ref for the filter
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -132,6 +132,20 @@ const Property = () => {
     }
   };
 
+  // Close filter when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setIsFilterOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   // Animation variants for cards
   const cardVariants = {
     hidden: { opacity: 0, y: 30 },
@@ -198,7 +212,10 @@ const Property = () => {
       <div className="flex flex-col lg:flex-row">
         {/* Sidebar Filter */}
         <motion.div
-          className={`w-full md:w-1/2 lg:w-80 bg-white shadow-2xl p-8 fixed top-0 left-0 h-screen overflow-y-auto z-50 lg:static lg:rounded-r-2xl`}
+          ref={filterRef} // Attach the ref here
+          className={`w-full md:w-1/2 lg:w-80 bg-white shadow-2xl p-8 fixed top-0 left-0 h-screen overflow-y-auto z-50 lg:static lg:rounded-r-2xl transition-all duration-300 ${
+            isFilterOpen ? "block" : "hidden lg:block"
+          }`}
           variants={filterVariants}
           initial="hidden"
           animate={
@@ -377,7 +394,11 @@ const Property = () => {
         </motion.div>
 
         {/* Main Content */}
-        <div className="flex-1 py-12 px-6 lg:px-10">
+        <div
+          className={`flex-1 py-12 px-6 lg:px-10 ${
+            isFilterOpen ? "md:w-1/2" : "md:w-full"
+          }`}
+        >
           <p className="text-gray-700 text-lg mb-8 font-medium">
             Total Listings: {filteredListings.length}
           </p>
