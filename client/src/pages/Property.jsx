@@ -1,16 +1,23 @@
-import { useEffect, useState, useRef } from "react"; // Import useRef
-import { useSelector, useDispatch } from "react-redux";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { setListings } from "../redux/listings/listingSlice";
-import { motion } from "framer-motion";
-import { FaFilter } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import { Filter, X, Search, ChevronDown, ChevronUp } from "lucide-react";
 
-const Property = () => {
-  const dispatch = useDispatch();
+// Define amenities for filter
+const AMENITIES = [
+  { key: "parkingAvailable", label: "Parking" },
+  { key: "kitchen", label: "Kitchen" },
+  { key: "housekeeping", label: "Housekeeping" },
+  { key: "electricityBackup", label: "Electricity Backup" },
+  { key: "laundryServices", label: "Laundry Services" },
+  { key: "securityGuard", label: "Security Guard" },
+  { key: "cctv", label: "CCTV" },
+];
+
+function Property() {
   const navigate = useNavigate();
-  const { currentUser } = useSelector((state) => state.user);
-  const { listings } = useSelector((state) => state.listings);
-  const [loading, setLoading] = useState(true);
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredListings, setFilteredListings] = useState([]);
@@ -18,13 +25,52 @@ const Property = () => {
   const [filters, setFilters] = useState({
     categories: [],
     roomTypes: [],
-    priceMin: 0,
-    priceMax: 20000,
+    priceRange: [0, 20000],
     amenities: [],
   });
+  const [mobileView, setMobileView] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    categories: true,
+    roomTypes: true,
+    priceRange: true,
+    amenities: true,
+  });
 
-  const filterRef = useRef(null); // Create a ref for the filter
+  const filterRef = useRef(null);
 
+  // Check if mobile view on mount and window resize
+  useEffect(() => {
+    const checkMobileView = () => {
+      setMobileView(window.innerWidth < 1024);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+
+    return () => {
+      window.removeEventListener("resize", checkMobileView);
+    };
+  }, []);
+
+  // Close filter when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(event.target) &&
+        mobileView
+      ) {
+        setIsFilterOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [mobileView]);
+
+  // Fetch listings from API
   useEffect(() => {
     const fetchListings = async () => {
       try {
@@ -39,8 +85,8 @@ const Property = () => {
           throw new Error(data.message || "Failed to fetch listings");
         }
 
-        dispatch(setListings(data.listings));
-        setFilteredListings(data.listings);
+        setListings(data.listings || data);
+        setFilteredListings(data.listings || data);
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -49,7 +95,7 @@ const Property = () => {
     };
 
     fetchListings();
-  }, [dispatch]);
+  }, []);
 
   // Filter listings based on search term and filters
   useEffect(() => {
@@ -83,7 +129,8 @@ const Property = () => {
 
     filtered = filtered.filter(
       (listing) =>
-        listing.price >= filters.priceMin && listing.price <= filters.priceMax
+        listing.price >= filters.priceRange[0] &&
+        listing.price <= filters.priceRange[1]
     );
 
     if (filters.amenities.length > 0) {
@@ -99,95 +146,129 @@ const Property = () => {
     navigate(`/property/${id}`);
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    if (type === "checkbox") {
-      if (name === "categories") {
-        setFilters((prev) => ({
-          ...prev,
-          categories: checked
-            ? [...prev.categories, value]
-            : prev.categories.filter((item) => item !== value),
-        }));
-      } else if (name === "roomTypes") {
-        setFilters((prev) => ({
-          ...prev,
-          roomTypes: checked
-            ? [...prev.roomTypes, value]
-            : prev.roomTypes.filter((item) => item !== value),
-        }));
-      } else if (name === "amenities") {
-        setFilters((prev) => ({
-          ...prev,
-          amenities: checked
-            ? [...prev.amenities, value]
-            : prev.amenities.filter((item) => item !== value),
-        }));
+  const handleFilterChange = (type, value) => {
+    setFilters((prev) => {
+      switch (type) {
+        case "category":
+          return {
+            ...prev,
+            categories: prev.categories.includes(value)
+              ? prev.categories.filter((item) => item !== value)
+              : [...prev.categories, value],
+          };
+        case "roomType":
+          return {
+            ...prev,
+            roomTypes: prev.roomTypes.includes(value)
+              ? prev.roomTypes.filter((item) => item !== value)
+              : [...prev.roomTypes, value],
+          };
+        case "amenity":
+          return {
+            ...prev,
+            amenities: prev.amenities.includes(value)
+              ? prev.amenities.filter((item) => item !== value)
+              : [...prev.amenities, value],
+          };
+        case "priceRangeMin":
+          return {
+            ...prev,
+            priceRange: [value, prev.priceRange[1]],
+          };
+        case "priceRangeMax":
+          return {
+            ...prev,
+            priceRange: [prev.priceRange[0], value],
+          };
+        default:
+          return prev;
       }
-    } else if (type === "range") {
-      setFilters((prev) => ({
-        ...prev,
-        [name]: Number(value),
-      }));
-    }
+    });
   };
 
-  // Close filter when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (filterRef.current && !filterRef.current.contains(event.target)) {
-        setIsFilterOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  // Animation variants for cards
-  const cardVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: "easeOut" },
-    },
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
   };
 
+  const clearFilters = () => {
+    setFilters({
+      categories: [],
+      roomTypes: [],
+      priceRange: [0, 20000],
+      amenities: [],
+    });
+    setSearchTerm("");
+  };
+
+  // Animation variants
   const filterVariants = {
     hidden: { x: "-100%", opacity: 0 },
     visible: {
       x: 0,
       opacity: 1,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
       transition: { duration: 0.4, ease: "easeOut" },
+    },
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
     },
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <motion.div
-          className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
+        <div className="flex flex-col items-center gap-4">
+          <motion.div
+            className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{
+              duration: 1,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "linear",
+            }}
+          />
+          <p className="text-gray-600">Loading properties...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <motion.p
-          className="text-red-500 text-2xl font-semibold bg-white p-8 rounded-2xl shadow-xl"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <motion.div
+          className="bg-red-50 border border-red-500 text-red-600 p-6 rounded-lg max-w-md"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
-          {error}
-        </motion.p>
+          <h3 className="font-semibold text-lg mb-2 text-red-700">
+            Error Loading Properties
+          </h3>
+          <p>{error}</p>
+          <button
+            className="mt-4 border border-red-500 text-red-600 px-4 py-2 rounded hover:bg-red-100"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </button>
+        </motion.div>
       </div>
     );
   }
@@ -195,278 +276,619 @@ const Property = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {/* Header */}
-      <div className="p-6  flex justify-between items-center lg:rounded-b-2xl">
-        <motion.button
-          onClick={() => setIsFilterOpen(!isFilterOpen)}
-          className="p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-all duration-300 shadow-md lg:hidden"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <FaFilter className="w-5 h-5" />
-        </motion.button>
+      <div className="p-4 md:p-6 flex justify-between items-center border-b border-gray-200 bg-white">
+        <h1 className="text-2xl font-bold text-indigo-600">
+          Find Your Perfect Home
+        </h1>
+        <div className="flex items-center gap-2">
+          {mobileView && (
+            <motion.button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="p-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Filter className="w-5 h-5" />
+              <span className="sr-only">Toggle filters</span>
+            </motion.button>
+          )}
+          {(filters.categories.length > 0 ||
+            filters.roomTypes.length > 0 ||
+            filters.amenities.length > 0 ||
+            filters.priceRange[0] > 0 ||
+            filters.priceRange[1] < 20000) && (
+            <button
+              className="hidden md:block border border-indigo-500 text-indigo-600 px-3 py-1 rounded text-sm hover:bg-indigo-50"
+              onClick={clearFilters}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row">
         {/* Sidebar Filter */}
-        <motion.div
-          ref={filterRef} // Attach the ref here
-          className={`w-full md:w-1/2 lg:w-80 bg-white shadow-2xl p-8 fixed top-0 left-0 h-screen overflow-y-auto z-50 lg:static lg:rounded-r-2xl transition-all duration-300 ${
-            isFilterOpen ? "block" : "hidden lg:block"
-          }`}
-          variants={filterVariants}
-          initial="hidden"
-          animate={
-            isFilterOpen || window.innerWidth >= 1024 ? "visible" : "hidden"
-          }
-        >
-          <div className="flex justify-between items-center mb-8 lg:hidden">
-            <h2 className="text-2xl font-bold text-gray-800 bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
-              Filters
-            </h2>
-            <button
-              onClick={() => setIsFilterOpen(false)}
-              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-8 bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent hidden lg:block">
-            Filter Properties
-          </h2>
-          <div className="space-y-10">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Search
-              </label>
-              <motion.input
-                type="text"
-                placeholder="Search properties..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-4 rounded-lg bg-gray-50 border border-gray-200 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all duration-300"
-                whileFocus={{ scale: 1.02 }}
-              />
-            </div>
-
-            {/* Categories */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-4">
-                Category
-              </label>
-              <div className="space-y-4">
-                {["Room", "Flat", "Hostel"].map((category) => (
-                  <motion.div
-                    key={category}
-                    className="flex items-center"
-                    whileHover={{ x: 5 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <input
-                      type="checkbox"
-                      name="categories"
-                      value={category}
-                      checked={filters.categories.includes(category)}
-                      onChange={handleFilterChange}
-                      className="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                    />
-                    <label className="ml-3 text-sm text-gray-700 font-medium">
-                      {category}
-                    </label>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Room/Flat Types */}
-            {(filters.categories.includes("Room") ||
-              filters.categories.includes("Flat")) && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-4">
-                  {filters.categories.includes("Room") &&
-                  filters.categories.includes("Flat")
-                    ? "Room/Flat Type"
-                    : filters.categories.includes("Room")
-                    ? "Room Type"
-                    : "Flat Type"}
-                </label>
-                <div className="space-y-4">
-                  {(filters.categories.includes("Room")
-                    ? ["Single", "Double"]
-                    : ["1 BHK", "2 BHK", "3 BHK", "4 BHK"]
-                  ).map((type) => (
-                    <motion.div
-                      key={type}
-                      className="flex items-center"
-                      whileHover={{ x: 5 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <input
-                        type="checkbox"
-                        name="roomTypes"
-                        value={type}
-                        checked={filters.roomTypes.includes(type)}
-                        onChange={handleFilterChange}
-                        className="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                      />
-                      <label className="ml-3 text-sm text-gray-700 font-medium">
-                        {type}
-                      </label>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Price Range Slider */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-4">
-                Price Range (per month)
-              </label>
-              <div className="space-y-6">
-                <div className="flex justify-between text-sm text-gray-600 font-medium">
-                  <span>${filters.priceMin.toLocaleString()}</span>
-                  <span>${filters.priceMax.toLocaleString()}</span>
-                </div>
-                <input
-                  type="range"
-                  name="priceMin"
-                  min="0"
-                  max="20000"
-                  step="100"
-                  value={filters.priceMin}
-                  onChange={handleFilterChange}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 transition-all duration-300"
-                />
-                <input
-                  type="range"
-                  name="priceMax"
-                  min="0"
-                  max="20000"
-                  step="100"
-                  value={filters.priceMax}
-                  onChange={handleFilterChange}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 transition-all duration-300"
-                />
-              </div>
-            </div>
-
-            {/* Amenities */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-4">
-                Amenities
-              </label>
-              <div className="space-y-4">
-                {[
-                  { key: "parkingAvailable", label: "Parking" },
-                  { key: "kitchen", label: "Kitchen" },
-                  { key: "housekeeping", label: "Housekeeping" },
-                  { key: "electricityBackup", label: "Electricity Backup" },
-                  { key: "laundryServices", label: "Laundry Services" },
-                  { key: "securityGuard", label: "Security Guard" },
-                  { key: "cctv", label: "CCTV" },
-                ].map(({ key, label }) => (
-                  <motion.div
-                    key={key}
-                    className="flex items-center"
-                    whileHover={{ x: 5 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <input
-                      type="checkbox"
-                      name="amenities"
-                      value={key}
-                      checked={filters.amenities.includes(key)}
-                      onChange={handleFilterChange}
-                      className="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                    />
-                    <label className="ml-3 text-sm text-gray-700 font-medium">
-                      {label}
-                    </label>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Main Content */}
-        <div
-          className={`flex-1 py-12 px-6 lg:px-10 ${
-            isFilterOpen ? "md:w-1/2" : "md:w-full"
-          }`}
-        >
-          <p className="text-gray-700 text-lg mb-8 font-medium">
-            Total Listings: {filteredListings.length}
-          </p>
-
-          {filteredListings.length === 0 ? (
-            <motion.p
-              className="text-gray-600 text-xl text-center font-medium"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6 }}
-            >
-              No properties match your filters.
-            </motion.p>
-          ) : (
+        <AnimatePresence>
+          {(isFilterOpen || !mobileView) && (
             <motion.div
-              className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+              ref={filterRef}
+              className={`w-full lg:w-80 bg-white border-r border-gray-200 p-4 md:p-6 z-50 overflow-y-auto ${
+                mobileView
+                  ? "fixed inset-0 h-screen"
+                  : "sticky top-0 h-[calc(100vh-4rem)]"
+              }`}
+              variants={filterVariants}
               initial="hidden"
               animate="visible"
-              variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                  opacity: 1,
-                  transition: { staggerChildren: 0.15 },
-                },
-              }}
+              exit="hidden"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Filters</h2>
+                {mobileView && (
+                  <button
+                    className="text-gray-600 hover:text-gray-900 p-1"
+                    onClick={() => setIsFilterOpen(false)}
+                  >
+                    <X className="h-5 w-5" />
+                    <span className="sr-only">Close</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Applied Filters */}
+              {(filters.categories.length > 0 ||
+                filters.roomTypes.length > 0 ||
+                filters.amenities.length > 0) && (
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-medium text-gray-600">
+                      Applied Filters
+                    </h3>
+                    <button
+                      className="text-indigo-600 hover:text-indigo-700 text-xs"
+                      onClick={clearFilters}
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {filters.categories.map((category) => (
+                      <span
+                        key={`cat-${category}`}
+                        className="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded flex items-center"
+                      >
+                        {category}
+                        <X
+                          className="ml-1 h-3 w-3 cursor-pointer text-indigo-600 hover:text-indigo-800"
+                          onClick={() =>
+                            handleFilterChange("category", category)
+                          }
+                        />
+                      </span>
+                    ))}
+                    {filters.roomTypes.map((type) => (
+                      <span
+                        key={`type-${type}`}
+                        className="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded flex items-center"
+                      >
+                        {type}
+                        <X
+                          className="ml-1 h-3 w-3 cursor-pointer text-indigo-600 hover:text-indigo-800"
+                          onClick={() => handleFilterChange("roomType", type)}
+                        />
+                      </span>
+                    ))}
+                    {filters.amenities.map((amenity) => {
+                      const amenityLabel =
+                        AMENITIES.find((a) => a.key === amenity)?.label ||
+                        amenity;
+                      return (
+                        <span
+                          key={`amenity-${amenity}`}
+                          className="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded flex items-center"
+                        >
+                          {amenityLabel}
+                          <X
+                            className="ml-1 h-3 w-3 cursor-pointer text-indigo-600 hover:text-indigo-800"
+                            onClick={() =>
+                              handleFilterChange("amenity", amenity)
+                            }
+                          />
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Search */}
+              <div className="mb-6 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Search properties..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 py-2 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                />
+              </div>
+
+              <div className="space-y-6">
+                {/* Categories */}
+                <div className="border-t border-gray-200 pt-4">
+                  <button
+                    className="flex justify-between items-center w-full text-left mb-4"
+                    onClick={() => toggleSection("categories")}
+                  >
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Property Type
+                    </h3>
+                    {expandedSections.categories ? (
+                      <ChevronUp className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    )}
+                  </button>
+
+                  <AnimatePresence>
+                    {expandedSections.categories && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-3">
+                          {["Room", "Flat", "Hostel"].map((category) => (
+                            <div
+                              key={category}
+                              className="flex items-center space-x-2"
+                            >
+                              <input
+                                type="checkbox"
+                                id={`category-${category}`}
+                                checked={filters.categories.includes(category)}
+                                onChange={() =>
+                                  handleFilterChange("category", category)
+                                }
+                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                              />
+                              <label
+                                htmlFor={`category-${category}`}
+                                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                              >
+                                {category}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Room/Flat Types */}
+                {(filters.categories.includes("Room") ||
+                  filters.categories.includes("Flat") ||
+                  filters.categories.length === 0) && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <button
+                      className="flex justify-between items-center w-full text-left mb-4"
+                      onClick={() => toggleSection("roomTypes")}
+                    >
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        {filters.categories.includes("Room") &&
+                        !filters.categories.includes("Flat")
+                          ? "Room Type"
+                          : filters.categories.includes("Flat") &&
+                            !filters.categories.includes("Room")
+                          ? "Flat Type"
+                          : "Room/Flat Type"}
+                      </h3>
+                      {expandedSections.roomTypes ? (
+                        <ChevronUp className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-gray-500" />
+                      )}
+                    </button>
+
+                    <AnimatePresence>
+                      {expandedSections.roomTypes && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-3">
+                            {(filters.categories.includes("Room") ||
+                              filters.categories.length === 0) && (
+                              <>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="room-single"
+                                    checked={filters.roomTypes.includes(
+                                      "Single"
+                                    )}
+                                    onChange={() =>
+                                      handleFilterChange("roomType", "Single")
+                                    }
+                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                  />
+                                  <label
+                                    htmlFor="room-single"
+                                    className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                                  >
+                                    Single Room
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="room-double"
+                                    checked={filters.roomTypes.includes(
+                                      "Double"
+                                    )}
+                                    onChange={() =>
+                                      handleFilterChange("roomType", "Double")
+                                    }
+                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                  />
+                                  <label
+                                    htmlFor="room-double"
+                                    className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                                  >
+                                    Double Room
+                                  </label>
+                                </div>
+                              </>
+                            )}
+
+                            {(filters.categories.includes("Flat") ||
+                              filters.categories.length === 0) && (
+                              <>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="flat-1bhk"
+                                    checked={filters.roomTypes.includes(
+                                      "1 BHK"
+                                    )}
+                                    onChange={() =>
+                                      handleFilterChange("roomType", "1 BHK")
+                                    }
+                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                  />
+                                  <label
+                                    htmlFor="flat-1bhk"
+                                    className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                                  >
+                                    1 BHK
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="flat-2bhk"
+                                    checked={filters.roomTypes.includes(
+                                      "2 BHK"
+                                    )}
+                                    onChange={() =>
+                                      handleFilterChange("roomType", "2 BHK")
+                                    }
+                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                  />
+                                  <label
+                                    htmlFor="flat-2bhk"
+                                    className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                                  >
+                                    2 BHK
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="flat-3bhk"
+                                    checked={filters.roomTypes.includes(
+                                      "3 BHK"
+                                    )}
+                                    onChange={() =>
+                                      handleFilterChange("roomType", "3 BHK")
+                                    }
+                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                  />
+                                  <label
+                                    htmlFor="flat-3bhk"
+                                    className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                                  >
+                                    3 BHK
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="flat-4bhk"
+                                    checked={filters.roomTypes.includes(
+                                      "4 BHK"
+                                    )}
+                                    onChange={() =>
+                                      handleFilterChange("roomType", "4 BHK")
+                                    }
+                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                  />
+                                  <label
+                                    htmlFor="flat-4bhk"
+                                    className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                                  >
+                                    4 BHK
+                                  </label>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* Price Range */}
+                <div className="border-t border-gray-200 pt-4">
+                  <button
+                    className="flex justify-between items-center w-full text-left mb-4"
+                    onClick={() => toggleSection("priceRange")}
+                  >
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Price Range (per month)
+                    </h3>
+                    {expandedSections.priceRange ? (
+                      <ChevronUp className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    )}
+                  </button>
+
+                  <AnimatePresence>
+                    {expandedSections.priceRange && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-6">
+                          <div className="flex justify-between text-sm text-gray-600">
+                            <span>
+                              ₹{filters.priceRange[0].toLocaleString()}
+                            </span>
+                            <span>
+                              ₹{filters.priceRange[1].toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            <input
+                              type="range"
+                              min="0"
+                              max="20000"
+                              step="500"
+                              value={filters.priceRange[0]}
+                              onChange={(e) =>
+                                handleFilterChange(
+                                  "priceRangeMin",
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                            <input
+                              type="range"
+                              min="0"
+                              max="20000"
+                              step="500"
+                              value={filters.priceRange[1]}
+                              onChange={(e) =>
+                                handleFilterChange(
+                                  "priceRangeMax",
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Amenities */}
+                <div className="border-t border-gray-200 pt-4">
+                  <button
+                    className="flex justify-between items-center w-full text-left mb-4"
+                    onClick={() => toggleSection("amenities")}
+                  >
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Amenities
+                    </h3>
+                    {expandedSections.amenities ? (
+                      <ChevronUp className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    )}
+                  </button>
+
+                  <AnimatePresence>
+                    {expandedSections.amenities && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-3">
+                          {AMENITIES.map(({ key, label }) => (
+                            <div
+                              key={key}
+                              className="flex items-center space-x-2"
+                            >
+                              <input
+                                type="checkbox"
+                                id={`amenity-${key}`}
+                                checked={filters.amenities.includes(key)}
+                                onChange={() =>
+                                  handleFilterChange("amenity", key)
+                                }
+                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                              />
+                              <label
+                                htmlFor={`amenity-${key}`}
+                                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                              >
+                                {label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Content */}
+        <div className="flex-1 p-4 md:p-6 lg:p-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Available Properties
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">
+                {filteredListings.length}{" "}
+                {filteredListings.length === 1 ? "property" : "properties"}{" "}
+                found
+              </p>
+            </div>
+
+            <div className="lg:hidden">
+              <button
+                className="flex items-center gap-2 border border-indigo-500 text-indigo-600 px-3 py-1 rounded text-sm hover:bg-indigo-50"
+                onClick={() => setIsFilterOpen(true)}
+              >
+                <Filter className="h-4 w-4" />
+                Filter
+              </button>
+            </div>
+          </div>
+
+          {filteredListings.length === 0 ? (
+            <motion.div
+              className="flex flex-col items-center justify-center py-12 px-4 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="bg-gray-100 p-6 rounded-full mb-4">
+                <Search className="h-10 w-10 text-gray-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No properties found
+              </h3>
+              <p className="text-gray-600 max-w-md mb-6">
+                We couldn't find any properties matching your current filters.
+                Try adjusting your search criteria.
+              </p>
+              <button
+                onClick={clearFilters}
+                className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+              >
+                Clear All Filters
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
             >
               {filteredListings.map((listing) => (
                 <motion.div
                   key={listing._id}
-                  className="bg-white border border-gray-100 rounded-2xl shadow-md transition-all duration-300 cursor-pointer overflow-hidden"
-                  onClick={() => handleCardClick(listing._id)}
                   variants={cardVariants}
-                  whileHover={{
-                    scale: 1.05,
-                    boxShadow: "0px 15px 30px rgba(0, 0, 0, 0.15)",
-                    borderColor: "#6366f1", // Indigo-600
-                    transition: { duration: 0.3 },
-                  }}
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  className="h-full"
                 >
-                  {listing.image && listing.image.length > 0 ? (
-                    <motion.img
-                      src={listing.image[0]}
-                      alt={listing.name || "Property"}
-                      className="w-full h-56 object-cover transition-all duration-300 group-hover:brightness-110"
-                      onError={(e) =>
-                        (e.target.src = "https://via.placeholder.com/150")
-                      }
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                      whileHover={{ scale: 1.1 }} // Image zoom on hover
-                    />
-                  ) : (
-                    <div className="w-full h-56 bg-gray-100 flex items-center justify-center text-gray-500">
-                      No Image
+                  <div
+                    className="bg-white border border-gray-200 rounded-lg overflow-hidden h-full cursor-pointer hover:border-indigo-500 transition-colors duration-300"
+                    onClick={() => handleCardClick(listing._id)}
+                  >
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={
+                          listing.image?.[0] ||
+                          "https://via.placeholder.com/400x600"
+                        }
+                        alt={listing.name || "Property"}
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                        onError={(e) =>
+                          (e.target.src = "https://via.placeholder.com/400x600")
+                        }
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                        <p className="text-white font-bold text-lg">
+                          ₹{listing.price.toLocaleString()}/month
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  <div className="p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2 truncate transition-all duration-300 group-hover:text-indigo-600">
-                      {listing.name || "Unnamed Property"}
-                    </h2>
-                    <p className="text-gray-600 mb-3 line-clamp-2 text-sm transition-all duration-300 group-hover:text-gray-700">
-                      {listing.description || "No description available"}
-                    </p>
-                    <p className="text-indigo-600 font-bold text-lg mb-3 transition-all duration-300 group-hover:text-indigo-700">
-                      ${listing.price ? listing.price.toLocaleString() : "N/A"}
-                      /month
-                    </p>
-                    <div className="text-sm text-gray-500 space-y-1 transition-all duration-300 group-hover:text-gray-600">
-                      <p>Location: {listing.location || "N/A"}</p>
-                      <p>Category: {listing.category || "N/A"}</p>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-1 mb-1 hover:text-indigo-600">
+                        {listing.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                        {listing.description}
+                      </p>
+                      <div className="flex items-center text-sm text-gray-500 mb-2">
+                        <span className="font-medium">{listing.location}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <span className="text-xs border border-indigo-500 text-indigo-600 px-2 py-1 rounded">
+                          {listing.category}
+                        </span>
+                        <span className="text-xs border border-indigo-500 text-indigo-600 px-2 py-1 rounded">
+                          {listing.roomType}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-4 pt-0 flex flex-wrap gap-2">
+                      {listing.parkingAvailable && (
+                        <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                          Parking
+                        </span>
+                      )}
+                      {listing.kitchen && (
+                        <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                          Kitchen
+                        </span>
+                      )}
+                      {listing.securityGuard && (
+                        <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                          Security
+                        </span>
+                      )}
+                      {listing.cctv && (
+                        <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                          CCTV
+                        </span>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -477,6 +899,6 @@ const Property = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Property;

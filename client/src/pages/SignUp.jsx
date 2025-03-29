@@ -2,21 +2,30 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { signInSuccess } from "../redux/user/userSlice";
+
+// Load Razorpay script dynamically
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 const SignUp = () => {
   const [formData, setFormData] = useState({ role: "" });
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.id]: e.target.value,
+      [e.target.id]: e.target.value.trim(),
     });
   };
 
@@ -28,63 +37,121 @@ const SignUp = () => {
     e.preventDefault();
     setError("");
     setSuccessMessage("");
+    setLoading(true);
 
-    if (!formData.role) {
-      setError("⚠️ Please select whether you want to Buy or Sell Property.");
+    const { username, email, password, role } = formData;
+    if (!username || !email || !password || !role) {
+      setError("⚠️ Please fill in all fields and select a role.");
+      setLoading(false);
       return;
     }
 
     try {
-      const res = await fetch("/api/auth/signup", {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error("Failed to load Razorpay checkout script");
+      }
+
+      const res = await fetch("/api/admin/signupOrder", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-        credentials: "include",
       });
 
       const data = await res.json();
-      console.log("Signup Response Data:", data);
+      console.log("Response from /signupOrder:", data);
 
-      if (!res.ok) {
-        throw new Error(data.message || `HTTP error! Status: ${res.status}`);
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to create signup order");
       }
 
-      if (!data.token || !data.user) {
-        throw new Error("Invalid response: Missing token or user data");
+      if (data.status === "free") {
+        setSuccessMessage(
+          "🎉 Free registration successful! Redirecting to login..."
+        );
+        setTimeout(() => navigate("/sign-in"), 2000);
+        return;
       }
 
-      // Dispatch to Redux
-      dispatch(
-        signInSuccess({
-          user: data.user,
-          token: data.token,
-        })
-      );
+      const options = {
+        key: data.order.key_id,
+        amount: data.order.amount,
+        currency: data.order.currency,
+        order_id: data.order.order_id,
+        name: "Heaven Space",
+        description: `Signup as ${role === "user" ? "Buyer" : "Seller"}`,
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch("/api/admin/verify-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email,
+                username,
+                password,
+                role,
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id,
+                signature: response.razorpay_signature,
+              }),
+            });
 
-      console.log("✅ Signup successful:", data);
-      console.log("✅ Token received:", data.token);
+            const verifyData = await verifyRes.json();
+            console.log("Verification response:", verifyData);
 
-      setSuccessMessage("🎉 Registration successful! Redirecting...");
-      setTimeout(() => {
-        navigate("/sign-in");
-      }, 2000);
+            if (!verifyRes.ok || !verifyData.success) {
+              throw new Error(
+                verifyData.message || "Payment verification failed"
+              );
+            }
+
+            setSuccessMessage(
+              "🎉 Payment successful! Account created. Redirecting to login..."
+            );
+            setTimeout(() => navigate("/sign-in"), 2000);
+          } catch (error) {
+            console.error("❌ Payment verification failed:", error);
+            setError(`❌ Payment failed: ${error.message}`);
+            setLoading(false);
+          }
+        },
+        prefill: {
+          email: formData.email,
+        },
+        theme: {
+          color: "#0891b2",
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            setError("❌ Payment cancelled by user.");
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response) => {
+        setError(`❌ Payment failed: ${response.error.description}`);
+        setLoading(false);
+      });
+      rzp.open();
     } catch (error) {
-      console.error("❌ Signup failed:", error.message);
+      console.error("❌ Signup failed:", error);
       setError(`❌ Signup failed: ${error.message}`);
+      setLoading(false);
     }
   };
 
-  // Framer Motion variants
+  // Framer Motion variants (unchanged)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
     },
   };
 
@@ -93,11 +160,7 @@ const SignUp = () => {
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 10,
-      },
+      transition: { type: "spring", stiffness: 100, damping: 10 },
     },
   };
 
@@ -106,12 +169,7 @@ const SignUp = () => {
     visible: {
       scale: 1,
       opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 200,
-        damping: 15,
-        delay: 0.2,
-      },
+      transition: { type: "spring", stiffness: 200, damping: 15, delay: 0.2 },
     },
   };
 
@@ -120,12 +178,7 @@ const SignUp = () => {
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 15,
-        delay: 0.3,
-      },
+      transition: { type: "spring", stiffness: 100, damping: 15, delay: 0.3 },
     },
   };
 
@@ -134,11 +187,7 @@ const SignUp = () => {
     hover: {
       scale: 1.05,
       boxShadow: "0 10px 25px -5px rgba(8, 145, 178, 0.4)",
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 10,
-      },
+      transition: { type: "spring", stiffness: 400, damping: 10 },
     },
     tap: { scale: 0.95 },
   };
@@ -147,21 +196,13 @@ const SignUp = () => {
     initial: { scale: 1 },
     hover: {
       scale: 1.03,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 10,
-      },
+      transition: { type: "spring", stiffness: 400, damping: 10 },
     },
     tap: { scale: 0.97 },
     selected: {
       scale: 1.03,
       y: -3,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 10,
-      },
+      transition: { type: "spring", stiffness: 400, damping: 10 },
     },
   };
 
@@ -190,11 +231,7 @@ const SignUp = () => {
   };
 
   const shootingStarVariants = {
-    initial: {
-      x: -100,
-      y: -100,
-      opacity: 0,
-    },
+    initial: { x: -100, y: -100, opacity: 0 },
     animate: {
       x: "150vw",
       y: "150vh",
@@ -221,9 +258,7 @@ const SignUp = () => {
           <motion.div className="text-center mb-8" variants={itemVariants}>
             <motion.h2
               className="text-3xl font-bold mb-2 text-white bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400"
-              animate={{
-                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-              }}
+              animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
               transition={{
                 duration: 8,
                 repeat: Number.POSITIVE_INFINITY,
@@ -307,7 +342,7 @@ const SignUp = () => {
                 </div>
                 <motion.input
                   type="email"
-                  placeholder="Enter your  email address"
+                  placeholder="Enter your email address"
                   className="bg-white/5 border border-white/20 pl-10 p-4 rounded-xl w-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300"
                   id="email"
                   onChange={handleChange}
@@ -427,7 +462,6 @@ const SignUp = () => {
               </div>
             </motion.div>
 
-            {/* Messages with AnimatePresence for smooth transitions */}
             <AnimatePresence mode="wait">
               {error && (
                 <motion.div
@@ -458,7 +492,6 @@ const SignUp = () => {
                   </motion.p>
                 </motion.div>
               )}
-
               {successMessage && (
                 <motion.div
                   className="bg-cyan-900/30 border border-cyan-500/50 rounded-xl p-4"
@@ -497,25 +530,53 @@ const SignUp = () => {
               initial="initial"
               whileHover="hover"
               whileTap="tap"
+              disabled={loading}
             >
-              <span>Create Account</span>
-              <motion.svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                animate={{ x: 0 }}
-                whileHover={{ x: 3 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </motion.svg>
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <motion.svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    animate={{ x: 0 }}
+                    whileHover={{ x: 3 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </motion.svg>
+                </>
+              )}
             </motion.button>
           </motion.form>
 
@@ -560,7 +621,6 @@ const SignUp = () => {
           animate="visible"
           variants={containerVariants}
         >
-          {/* Logo and Brand */}
           <motion.div
             className="flex items-center gap-4"
             variants={logoVariants}
@@ -573,9 +633,7 @@ const SignUp = () => {
             </motion.div>
             <motion.h1
               className="font-extrabold text-5xl sm:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-blue-300"
-              animate={{
-                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-              }}
+              animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
               transition={{
                 duration: 15,
                 repeat: Number.POSITIVE_INFINITY,
@@ -586,7 +644,6 @@ const SignUp = () => {
             </motion.h1>
           </motion.div>
 
-          {/* Taglines with animated reveal */}
           <motion.div className="space-y-3" variants={itemVariants}>
             <motion.p
               className="text-gray-100 text-2xl font-semibold"
@@ -595,11 +652,10 @@ const SignUp = () => {
               Discover Your Perfect Stay
             </motion.p>
             <motion.p className="text-gray-300 text-lg" variants={itemVariants}>
-              Find the ideal Sp, from cozy rooms to spacious hostel.
+              Find the ideal space, from cozy rooms to spacious hostels.
             </motion.p>
           </motion.div>
 
-          {/* Benefits */}
           <motion.div className="space-y-6">
             <motion.h3
               className="text-xl font-semibold text-cyan-300"
@@ -663,7 +719,7 @@ const SignUp = () => {
                 </div>
                 <div>
                   <h4 className="text-white font-medium text-lg">
-                    List, rent, and connect effortlessly.
+                    List, rent, and connect effortlessly
                   </h4>
                   <p className="text-gray-300 mt-1">
                     Connect with like-minded property enthusiasts.
@@ -708,9 +764,8 @@ const SignUp = () => {
           </motion.div>
         </motion.div>
 
-        {/* Enhanced Starry Background Animation with Framer Motion */}
+        {/* Starry Background Animation */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Stars */}
           {[...Array(10)].map((_, i) => (
             <motion.div
               key={i}
@@ -722,16 +777,8 @@ const SignUp = () => {
               variants={starVariants}
               initial="initial"
               animate="animate"
-              transition={{
-                duration: Math.random() * 3 + 2,
-                repeat: Number.POSITIVE_INFINITY,
-                repeatType: "reverse",
-                delay: Math.random() * 2,
-              }}
             />
           ))}
-
-          {/* Shooting stars */}
           <motion.div
             className="absolute w-0.5 h-20 bg-gradient-to-b from-white to-transparent -rotate-45"
             style={{ top: "10%", left: "20%" }}
@@ -739,7 +786,6 @@ const SignUp = () => {
             initial="initial"
             animate="animate"
           />
-
           <motion.div
             className="absolute w-0.5 h-16 bg-gradient-to-b from-white to-transparent -rotate-45"
             style={{ top: "30%", right: "30%" }}
@@ -753,15 +799,12 @@ const SignUp = () => {
               ease: "easeOut",
             }}
           />
-
-          {/* Nebula effects */}
           <motion.div
             className="absolute w-[500px] h-[500px] rounded-full -top-32 -left-32 blur-3xl opacity-20 bg-gradient-to-r from-cyan-500 to-blue-500"
             variants={nebulaVariants}
             initial="initial"
             animate="animate"
           />
-
           <motion.div
             className="absolute w-[400px] h-[400px] rounded-full -bottom-24 -right-24 blur-3xl opacity-20 bg-gradient-to-r from-purple-500 to-pink-500"
             variants={nebulaVariants}

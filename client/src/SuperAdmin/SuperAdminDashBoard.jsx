@@ -201,56 +201,6 @@ const SuperAdminDashBoard = ({ properties = [] }) => {
           </div>
 
           {/* Stats Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-white to-indigo-50 rounded-2xl p-6 shadow-lg border border-indigo-100 flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 font-medium">Total Listings</p>
-                <h3 className="text-3xl font-bold text-indigo-700">
-                  {properties.length}
-                </h3>
-              </div>
-              <svg
-                className="h-12 w-12 text-indigo-500 opacity-80"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <div className="bg-gradient-to-br from-white to-indigo-50 rounded-2xl p-6 shadow-lg border border-indigo-100 flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 font-medium">Average Price</p>
-                <h3 className="text-3xl font-bold text-indigo-700">
-                  $
-                  {properties.length > 0
-                    ? Math.round(
-                        properties.reduce((sum, p) => sum + (p.price || 0), 0) /
-                          properties.length
-                      )
-                    : 0}
-                </h3>
-              </div>
-              <svg
-                className="h-12 w-12 text-indigo-500 opacity-80"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-            </div>
-          </div>
 
           {/* Outlet */}
           <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">

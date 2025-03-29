@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -7,69 +7,43 @@ import {
   signInFailure,
 } from "../redux/user/userSlice";
 
+// Load Razorpay script dynamically
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 const SignIn = () => {
   const [formData, setFormData] = useState({});
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { loading } = useSelector((state) => state.user);
+  const {
+    loading,
+    currentUser,
+    error: reduxError,
+  } = useSelector((state) => state.user);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value.trim() });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccessMessage("");
-
-    if (!formData.email || !formData.password) {
-      setError("❌ Please enter both email and password");
-      return;
-    }
-
-    try {
-      dispatch(signInStart());
-
-      const res = await fetch("/api/auth/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        console.log("Raw signin response:", text);
-        throw new Error(text || `HTTP error! Status: ${res.status}`);
+  useEffect(() => {
+    const initializeRazorpay = async () => {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        setError("❌ Failed to load payment gateway. Please try again.");
       }
+    };
+    initializeRazorpay();
+  }, []);
 
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.message || "Signin failed");
-      }
-
-      if (!data.token || !data.user) {
-        throw new Error("Invalid response: Missing token or user data");
-      }
-
-      dispatch(
-        signInSuccess({
-          user: data.user,
-          token: data.token,
-        })
-      );
-
-      localStorage.setItem("token", data.token);
-
-      setSuccessMessage("🌌 Welcome aboard! Redirecting...");
-      console.log("Signin successful, user:", data.user);
-      console.log("Signin successful:", data);
-
-      const userRole = data.user?.role;
-      setTimeout(() => {
-        switch (userRole) {
+  useEffect(() => {
+    if (currentUser && successMessage) {
+      const timer = setTimeout(() => {
+        switch (currentUser.role) {
           case "superadmin":
             navigate("/super-admin");
             break;
@@ -80,23 +54,180 @@ const SignIn = () => {
             navigate("/");
             break;
           default:
-            console.warn("Unknown role:", userRole);
+            setError("❌ Unknown user role. Redirecting to home...");
             navigate("/");
         }
       }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentUser, successMessage, navigate]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value.trim() });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccessMessage("");
+
+    const { email, password } = formData;
+    if (!email || !password) {
+      setError("❌ Please enter both email and password");
+      return;
+    }
+
+    try {
+      dispatch(signInStart());
+
+      // First attempt login for all users
+      let res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
+
+      let data = await res.json();
+      console.log("Login response:", data);
+
+      if (!data.success) {
+        // If user exists and is admin/superadmin, try signin endpoint
+        if (
+          data.message === "User not found" ||
+          data.message === "Payment required to log in"
+        ) {
+          res = await fetch("/api/admin/signin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+            credentials: "include",
+          });
+
+          data = await res.json();
+          console.log("Signin response:", data);
+
+          if (!data.success) {
+            if (
+              res.status === 402 &&
+              data.message === "Payment required for admin access"
+            ) {
+              await handlePayment(data.order, { email, password });
+              return;
+            }
+            throw new Error(data.message || "Signin failed");
+          }
+        } else {
+          throw new Error(data.message || "Login failed");
+        }
+      }
+
+      dispatch(
+        signInSuccess({ user: data.user, token: data.token || "temp-token" })
+      );
+      localStorage.setItem("token", data.token || "temp-token"); // Use token if provided
+      setSuccessMessage(
+        `🌌 Welcome aboard${
+          data.user.isPaid ? " as a premium member" : ""
+        }! Redirecting...`
+      );
     } catch (error) {
       dispatch(signInFailure(error.message));
-      setError(`❌ Signin failed: ${error.message}`);
+      setError(`❌ ${error.message}`);
       console.error("Signin error:", error);
+    }
+  };
+
+  const handlePayment = async (order, userData) => {
+    try {
+      if (!window.Razorpay) {
+        throw new Error("Payment gateway not loaded");
+      }
+
+      const options = {
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: "Heaven Space",
+        description: "Complete your admin access payment",
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch("/api/admin/verifyPayment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: userData.email,
+                username: userData.email.split("@")[0], // Assuming username from email
+                password: userData.password,
+                role: "admin", // Hardcoded for admin payment
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id,
+                signature: response.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            console.log("Verification response:", verifyData);
+
+            if (!verifyData.success) {
+              throw new Error(
+                verifyData.message || "Payment verification failed"
+              );
+            }
+
+            // Retry signin after payment
+            const signinRes = await fetch("/api/admin/signin", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(userData),
+              credentials: "include",
+            });
+
+            const signinData = await signinRes.json();
+            if (!signinData.success) {
+              throw new Error(
+                signinData.message || "Signin failed after payment"
+              );
+            }
+
+            dispatch(
+              signInSuccess({ user: signinData.user, token: signinData.token })
+            );
+            localStorage.setItem("token", signinData.token);
+            setSuccessMessage(
+              "🌌 Payment successful! Welcome aboard! Redirecting..."
+            );
+          } catch (error) {
+            setError(`❌ Payment verification failed: ${error.message}`);
+            console.error("Payment verification error:", error);
+          }
+        },
+        prefill: { email: userData.email },
+        theme: { color: "#06b6d4" },
+        modal: {
+          ondismiss: () => {
+            setError("❌ Payment cancelled by user.");
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response) => {
+        setError(`❌ Payment failed: ${response.error.description}`);
+      });
+      rzp.open();
+    } catch (error) {
+      setError(`❌ Payment error: ${error.message}`);
+      console.error("Payment initiation error:", error);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900 flex flex-col md:flex-row overflow-hidden">
-      {/* Left Half - Enhanced Heaven Space Branding */}
+      {/* Left Half - Heaven Space Branding */}
       <div className="md:w-1/2 flex items-center justify-center p-10 text-white relative overflow-hidden">
         <div className="space-y-10 z-10 max-w-lg">
-          {/* Animated Title - One Line */}
           <h1 className="font-extrabold text-6xl sm:text-7xl animate-fadeIn">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-300">
               Heaven
@@ -106,7 +237,6 @@ const SignIn = () => {
               Space
             </span>
           </h1>
-          {/* Taglines */}
           <div className="space-y-3">
             <p className="text-gray-100 text-2xl font-semibold animate-fadeIn delay-400">
               Your Ultimate Rental Destination
@@ -115,7 +245,6 @@ const SignIn = () => {
               Find the perfect space to live, work, or stay.
             </p>
           </div>
-          {/* Points - No Animated Dots */}
           <ul className="text-gray-200 space-y-5 text-lg">
             <li className="flex items-center gap-4 animate-slideUp delay-800">
               <span className="w-3 h-3 bg-cyan-400 rounded-full" />
@@ -137,7 +266,6 @@ const SignIn = () => {
             </li>
           </ul>
         </div>
-        {/* Starry Background Animation */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute w-2 h-2 bg-white rounded-full top-20 left-20 animate-twinkle" />
           <div className="absolute w-3 h-3 bg-cyan-200 rounded-full top-1/3 right-1/4 animate-twinkle delay-200" />
@@ -173,7 +301,6 @@ const SignIn = () => {
               required
             />
 
-            {/* Messages */}
             {error && (
               <p className="text-red-400 text-center bg-red-900/20 p-2 rounded-lg animate-shake">
                 {error}
