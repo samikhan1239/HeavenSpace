@@ -6,10 +6,21 @@ import { errorHandler } from "../util/error.js"; // Adjust path
 
 // Multer setup (in-memory storage for file buffer)
 const upload = multer({ storage: multer.memoryStorage() });
+const initializeClaud = () => {
+  console.log("CLOUDINARY_CLOUD_NAME:", process.env.CLOUDINARY_CLOUD_NAME);
+  console.log("CLOUDINARY_API_KEY:", process.env.CLOUDINARY_API_KEY);
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY) {
+    console.error(
+      "cloudinary credentials are missing. Please set Cloudniary _KEY_ID and Cloudinary_KEY_SECRET in your environment ."
+    );
+    return null;
+  }
+};
 
 // Cloudinary Config
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
@@ -19,6 +30,7 @@ export const uploadImage = upload.single("image");
 
 // Create Listing with Image Upload
 export const createListing = async (req, res, next) => {
+  const cloud = initializeClaud();
   try {
     // Extract token from headers or cookies
     const token =

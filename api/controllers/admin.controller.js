@@ -5,11 +5,20 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+// Utility function to generate JWT token
+const generateToken = (user) => {
+  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
+
 // Initialize Razorpay safely
 const initializeRazorpay = () => {
+  console.log("RAZORPAY_KEY_ID:", process.env.RAZORPAY_KEY_ID);
+  console.log("RAZORPAY_KEY_SECRET:", process.env.RAZORPAY_KEY_SECRET);
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
     console.error(
-      "Razorpay credentials are missing. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your environment variables."
+      "Razorpay credentials are missing. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your environment."
     );
     return null;
   }
@@ -18,17 +27,6 @@ const initializeRazorpay = () => {
     key_secret: process.env.RAZORPAY_KEY_SECRET,
   });
 };
-
-const razorpay = initializeRazorpay();
-
-// Utility function to generate JWT token
-const generateToken = (user) => {
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
-};
-
-// Set payment settings for admin and user (superadmin only)
 
 // Set payment settings for admin and user
 export const setPayments = async (req, res) => {
@@ -88,7 +86,6 @@ export const setPayments = async (req, res) => {
 // Get current payment settings
 export const getSettings = async (req, res) => {
   try {
-    // Removed req.user check to align with no explicit auth requirement
     const adminConfig = await Config.findOne({ key: "admin_signup_amount" });
     const userConfig = await Config.findOne({ key: "user_signup_amount" });
 
@@ -111,8 +108,9 @@ export const getSettings = async (req, res) => {
   }
 };
 
-// ... (Other functions like signupOrder, verifyPayment, login, signin remain unchanged)// Create a signup order for user or admin
+// Create a signup order for user or admin
 export const signupOrder = async (req, res) => {
+  const razorpay = initializeRazorpay();
   const { email, username, password, role } = req.body;
 
   try {
@@ -183,7 +181,7 @@ export const signupOrder = async (req, res) => {
     const options = {
       amount: signupAmount,
       currency: "INR",
-      receipt: `signup_${role}_${email}_${Date.now()}`,
+      receipt: `signup_${role}_${email}_${Date.now()}`.slice(0, 40),
     };
 
     const order = await razorpay.orders.create(options);
@@ -313,6 +311,7 @@ export const verifyPayment = async (req, res) => {
 
 // Login (all roles, with payment check for user/admin only)
 export const login = async (req, res) => {
+  const razorpay = initializeRazorpay();
   const { email, password } = req.body;
 
   try {
@@ -410,6 +409,7 @@ export const login = async (req, res) => {
 
 // Signin (admin only, with payment check)
 export const signin = async (req, res) => {
+  const razorpay = initializeRazorpay();
   try {
     console.log("Received signin request:", req.body);
     const { email, password } = req.body;
