@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { setListings } from "../redux/listings/listingSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import { Filter, X, Search, ChevronDown, ChevronUp } from "lucide-react";
 
-// Define amenities for filter
 const AMENITIES = [
   { key: "parkingAvailable", label: "Parking" },
   { key: "kitchen", label: "Kitchen" },
@@ -15,9 +16,11 @@ const AMENITIES = [
 ];
 
 function Property() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { currentUser } = useSelector((state) => state.user);
+  const { listings } = useSelector((state) => state.listings);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredListings, setFilteredListings] = useState([]);
@@ -25,7 +28,7 @@ function Property() {
   const [filters, setFilters] = useState({
     categories: [],
     roomTypes: [],
-    priceRange: [0, 20000],
+    priceRange: [0, 50000], // Adjusted max range
     amenities: [],
   });
   const [mobileView, setMobileView] = useState(false);
@@ -38,21 +41,15 @@ function Property() {
 
   const filterRef = useRef(null);
 
-  // Check if mobile view on mount and window resize
   useEffect(() => {
     const checkMobileView = () => {
       setMobileView(window.innerWidth < 1024);
     };
-
     checkMobileView();
     window.addEventListener("resize", checkMobileView);
-
-    return () => {
-      window.removeEventListener("resize", checkMobileView);
-    };
+    return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
-  // Close filter when clicking outside on mobile
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -63,30 +60,44 @@ function Property() {
         setIsFilterOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [mobileView]);
 
-  // Fetch listings from API
   useEffect(() => {
+    if (!currentUser) {
+      setError("Please log in to view properties.");
+      setLoading(false);
+      navigate("/sign-in");
+      return;
+    }
+
     const fetchListings = async () => {
       try {
         setLoading(true);
         const res = await fetch("/api/listings/admin", {
           method: "GET",
           credentials: "include",
+          headers: {
+            Authorization: `Bearer ${currentUser.token}`,
+          },
         });
 
         const data = await res.json();
+        console.log("API Response:", data);
         if (!res.ok) {
           throw new Error(data.message || "Failed to fetch listings");
         }
 
-        setListings(data.listings || data);
-        setFilteredListings(data.listings || data);
+        const listingsArray = Array.isArray(data)
+          ? data
+          : Array.isArray(data.listings)
+          ? data.listings
+          : Array.isArray(data.data)
+          ? data.data
+          : [];
+        dispatch(setListings(listingsArray));
+        setFilteredListings(listingsArray);
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -95,10 +106,10 @@ function Property() {
     };
 
     fetchListings();
-  }, []);
+  }, [dispatch, currentUser, navigate]);
 
-  // Filter listings based on search term and filters
   useEffect(() => {
+    console.log("Raw Listings from Redux:", listings);
     let filtered = listings;
 
     if (searchTerm) {
@@ -139,6 +150,7 @@ function Property() {
       );
     }
 
+    console.log("Filtered Listings:", filtered);
     setFilteredListings(filtered);
   }, [searchTerm, filters, listings]);
 
@@ -173,12 +185,12 @@ function Property() {
         case "priceRangeMin":
           return {
             ...prev,
-            priceRange: [value, prev.priceRange[1]],
+            priceRange: [Number(value), prev.priceRange[1]],
           };
         case "priceRangeMax":
           return {
             ...prev,
-            priceRange: [prev.priceRange[0], value],
+            priceRange: [prev.priceRange[0], Number(value)],
           };
         default:
           return prev;
@@ -197,13 +209,12 @@ function Property() {
     setFilters({
       categories: [],
       roomTypes: [],
-      priceRange: [0, 20000],
+      priceRange: [0, 50000],
       amenities: [],
     });
     setSearchTerm("");
   };
 
-  // Animation variants
   const filterVariants = {
     hidden: { x: "-100%", opacity: 0 },
     visible: {
@@ -275,7 +286,6 @@ function Property() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      {/* Header */}
       <div className="p-4 md:p-6 flex justify-between items-center border-b border-gray-200 bg-white">
         <h1 className="text-2xl font-bold text-indigo-600">
           Find Your Perfect Home
@@ -296,7 +306,7 @@ function Property() {
             filters.roomTypes.length > 0 ||
             filters.amenities.length > 0 ||
             filters.priceRange[0] > 0 ||
-            filters.priceRange[1] < 20000) && (
+            filters.priceRange[1] < 50000) && (
             <button
               className="hidden md:block border border-indigo-500 text-indigo-600 px-3 py-1 rounded text-sm hover:bg-indigo-50"
               onClick={clearFilters}
@@ -308,7 +318,6 @@ function Property() {
       </div>
 
       <div className="flex flex-col lg:flex-row">
-        {/* Sidebar Filter */}
         <AnimatePresence>
           {(isFilterOpen || !mobileView) && (
             <motion.div
@@ -336,7 +345,6 @@ function Property() {
                 )}
               </div>
 
-              {/* Applied Filters */}
               {(filters.categories.length > 0 ||
                 filters.roomTypes.length > 0 ||
                 filters.amenities.length > 0) && (
@@ -402,7 +410,6 @@ function Property() {
                 </div>
               )}
 
-              {/* Search */}
               <div className="mb-6 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <input
@@ -415,7 +422,6 @@ function Property() {
               </div>
 
               <div className="space-y-6">
-                {/* Categories */}
                 <div className="border-t border-gray-200 pt-4">
                   <button
                     className="flex justify-between items-center w-full text-left mb-4"
@@ -430,7 +436,6 @@ function Property() {
                       <ChevronDown className="h-4 w-4 text-gray-500" />
                     )}
                   </button>
-
                   <AnimatePresence>
                     {expandedSections.categories && (
                       <motion.div
@@ -469,7 +474,6 @@ function Property() {
                   </AnimatePresence>
                 </div>
 
-                {/* Room/Flat Types */}
                 {(filters.categories.includes("Room") ||
                   filters.categories.includes("Flat") ||
                   filters.categories.length === 0) && (
@@ -493,7 +497,6 @@ function Property() {
                         <ChevronDown className="h-4 w-4 text-gray-500" />
                       )}
                     </button>
-
                     <AnimatePresence>
                       {expandedSections.roomTypes && (
                         <motion.div
@@ -547,7 +550,6 @@ function Property() {
                                 </div>
                               </>
                             )}
-
                             {(filters.categories.includes("Flat") ||
                               filters.categories.length === 0) && (
                               <>
@@ -636,7 +638,6 @@ function Property() {
                   </div>
                 )}
 
-                {/* Price Range */}
                 <div className="border-t border-gray-200 pt-4">
                   <button
                     className="flex justify-between items-center w-full text-left mb-4"
@@ -651,7 +652,6 @@ function Property() {
                       <ChevronDown className="h-4 w-4 text-gray-500" />
                     )}
                   </button>
-
                   <AnimatePresence>
                     {expandedSections.priceRange && (
                       <motion.div
@@ -674,13 +674,13 @@ function Property() {
                             <input
                               type="range"
                               min="0"
-                              max="20000"
+                              max="50000"
                               step="500"
                               value={filters.priceRange[0]}
                               onChange={(e) =>
                                 handleFilterChange(
                                   "priceRangeMin",
-                                  Number(e.target.value)
+                                  e.target.value
                                 )
                               }
                               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
@@ -688,13 +688,13 @@ function Property() {
                             <input
                               type="range"
                               min="0"
-                              max="20000"
+                              max="50000"
                               step="500"
                               value={filters.priceRange[1]}
                               onChange={(e) =>
                                 handleFilterChange(
                                   "priceRangeMax",
-                                  Number(e.target.value)
+                                  e.target.value
                                 )
                               }
                               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
@@ -706,7 +706,6 @@ function Property() {
                   </AnimatePresence>
                 </div>
 
-                {/* Amenities */}
                 <div className="border-t border-gray-200 pt-4">
                   <button
                     className="flex justify-between items-center w-full text-left mb-4"
@@ -721,7 +720,6 @@ function Property() {
                       <ChevronDown className="h-4 w-4 text-gray-500" />
                     )}
                   </button>
-
                   <AnimatePresence>
                     {expandedSections.amenities && (
                       <motion.div
@@ -764,7 +762,6 @@ function Property() {
           )}
         </AnimatePresence>
 
-        {/* Main Content */}
         <div className="flex-1 p-4 md:p-6 lg:p-8">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -777,7 +774,6 @@ function Property() {
                 found
               </p>
             </div>
-
             <div className="lg:hidden">
               <button
                 className="flex items-center gap-2 border border-indigo-500 text-indigo-600 px-3 py-1 rounded text-sm hover:bg-indigo-50"

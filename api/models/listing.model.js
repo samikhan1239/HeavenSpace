@@ -51,6 +51,7 @@ const listingSchema = new mongoose.Schema(
     },
     brokerName: { type: String },
     brokeragePrice: { type: Number },
+    ownerName: { type: String },
     rating: { type: Number, default: 0 },
     numReviews: { type: Number, default: 100 },
     tags: { type: [String] },

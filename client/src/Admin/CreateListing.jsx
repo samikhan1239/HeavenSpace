@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom"; // React Router for navigation
+import { useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   Home,
   Building2,
@@ -30,67 +31,20 @@ import {
 } from "lucide-react";
 
 export default function CreateListing() {
-  const navigate = useNavigate(); // Replace useRouter with useNavigate
-  const { id } = useParams(); // Use useParams to get listing ID for editing (optional)
-  const [files, setFiles] = useState(null);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { currentUser, token } = useSelector((state) => state.user);
+  const [files, setFiles] = useState([]);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
-
-  // Mock user data - in a real app, this would come from authentication
-  const [currentUser, setCurrentUser] = useState({
-    _id: "user123",
-    role: "admin",
-  });
-  const [token, setToken] = useState("mock-token");
-
-  // For demo purposes, simulate editing mode based on id param
   const [isEditing, setIsEditing] = useState(!!id);
   const [editingListing, setEditingListing] = useState(null);
 
   useEffect(() => {
-    // Simulate authentication check
-    setCurrentUser({ _id: "user123", role: "admin" });
-    setToken("mock-token");
-
-    // If editing, fetch the listing data (mocked for demo)
-    if (isEditing) {
-      const mockEditingListing = {
-        name: "Luxury Apartment",
-        description: "A beautiful apartment with modern amenities",
-        price: "1500",
-        discountPrice: "1400",
-        securityDeposit: "1000",
-        listingType: "Direct Owner",
-        ownerName: "John Doe",
-        ownerContact: "1234567890",
-        propertyType: "Flat",
-        roomType: "2 BHK",
-        category: "Flat",
-        location: "Downtown",
-        image: ["/placeholder.svg?height=300&width=400&text=Sample Image"],
-        phoneNo: "9876543210",
-        availability: "Available",
-        genderPreference: "Any",
-        parkingAvailable: true,
-        kitchen: true,
-        housekeeping: false,
-        electricityBackup: true,
-        laundryServices: true,
-        securityGuard: true,
-        cctv: true,
-      };
-      setEditingListing(mockEditingListing);
-      setFormData(mockEditingListing);
-    }
-  }, [id]);
-
-  // Check authentication and role on mount
-  useEffect(() => {
     if (!token || !currentUser) {
       setMessage("❌ Please log in to create a listing.");
       setMessageType("error");
-      // In a real app, redirect to login
-      // navigate("/sign-in");
+      navigate("/sign-in");
       return;
     }
 
@@ -98,10 +52,29 @@ export default function CreateListing() {
     if (!["admin", "superadmin"].includes(userRole)) {
       setMessage("❌ Only admins and superadmins can create listings.");
       setMessageType("error");
-      // In a real app, redirect to home
-      // navigate("/");
+      navigate("/");
+      return;
     }
-  }, [currentUser, token, navigate]);
+
+    if (isEditing) {
+      const fetchListing = async () => {
+        try {
+          const res = await fetch(`/api/user/listings/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (data.success) {
+            setEditingListing(data.data);
+            setFormData(data.data);
+          }
+        } catch (error) {
+          setMessage(`❌ Error fetching listing: ${error.message}`);
+          setMessageType("error");
+        }
+      };
+      fetchListing();
+    }
+  }, [id, currentUser, token, navigate, isEditing]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -135,7 +108,6 @@ export default function CreateListing() {
 
   const [imageUploadError, setImageUploadError] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const roomTypeOptions = {
@@ -160,26 +132,13 @@ export default function CreateListing() {
     setImageUploadError("");
 
     try {
-      const promises = Array.from(files).map((file, index) => {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve(
-              `/placeholder.svg?height=300&width=400&text=Image ${
-                formData.image.length + index + 1
-              }`
-            );
-          }, 1000);
-        });
-      });
-
+      const promises = Array.from(files).map((file) => storeImage(file));
       const urls = await Promise.all(promises);
-
       setFormData((prev) => ({
         ...prev,
         image: [...prev.image, ...urls],
       }));
-      setFiles(null);
-
+      setFiles([]);
       const fileInput = document.getElementById("images");
       if (fileInput) fileInput.value = "";
     } catch (err) {
@@ -187,6 +146,25 @@ export default function CreateListing() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const storeImage = async (file) => {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "heaven");
+
+      fetch("https://api.cloudinary.com/v1_1/dgdgowdls/image/upload", {
+        method: "POST",
+        body: formData,
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.secure_url) resolve(data.secure_url);
+          else reject(new Error("Upload failed"));
+        })
+        .catch((error) => reject(error));
+    });
   };
 
   const handleRemoveImage = (index) => {
@@ -199,19 +177,11 @@ export default function CreateListing() {
   const handleChange = (id, value) => {
     setFormData((prev) => {
       const newData = { ...prev, [id]: value };
-
-      if (
-        id === "propertyType" &&
-        typeof value === "string" &&
-        roomTypeOptions[value]
-      ) {
+      if (id === "propertyType" && roomTypeOptions[value]) {
         newData.roomType = roomTypeOptions[value][0];
         newData.category = value;
-        if (value === "Flat") {
-          newData.availableRooms = "";
-        }
+        if (value === "Flat") newData.availableRooms = "";
       }
-
       return newData;
     });
   };
@@ -221,7 +191,6 @@ export default function CreateListing() {
     setMessage("");
     setMessageType("");
     setLoading(true);
-    setError(false);
 
     const requiredFields = [
       "name",
@@ -235,7 +204,6 @@ export default function CreateListing() {
     ];
 
     const missingFields = requiredFields.filter((field) => !formData[field]);
-
     if (missingFields.length > 0 || formData.image.length === 0) {
       setMessage(
         `❌ Please fill all required fields (${missingFields.join(
@@ -253,22 +221,21 @@ export default function CreateListing() {
         : "/api/listings/create";
       const method = isEditing ? "PUT" : "POST";
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const mockResponse = {
-        success: true,
-        message: isEditing
-          ? "Listing updated successfully"
-          : "Listing created successfully",
-        data: {
-          ...formData,
-          _id: isEditing ? editingListing?._id : "new_listing_123",
-          userRef: currentUser?._id,
+      const res = await fetch(url, {
+        method,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      };
+        body: JSON.stringify({
+          ...formData,
+          userRef: currentUser?._id,
+        }),
+      });
 
-      console.log("📌 Form Data Submitted:", formData);
-      console.log("📌 Full Server Response:", mockResponse);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to save");
 
       setMessage(
         isEditing
@@ -276,16 +243,10 @@ export default function CreateListing() {
           : "🎉 Listing created successfully!"
       );
       setMessageType("success");
-
-      // Redirect to listings page
-      // navigate("/admin/listing");
+      navigate("/admin/listing");
     } catch (error) {
-      console.error("Submission Error:", error);
-      setMessage(
-        `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      setMessage(`❌ Error: ${error.message}`);
       setMessageType("error");
-      setError(true);
     } finally {
       setLoading(false);
     }
@@ -1081,7 +1042,7 @@ export default function CreateListing() {
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mt-4">
                       <Upload className="h-10 w-10 mx-auto text-gray-400 mb-2" />
                       <p className="text-gray-500">No images uploaded yet</p>
-                      <p className="text-sm text-gray-400 mt-1">
+                      <p className="text-sm text-gray-400onomics mt-1">
                         Upload at least one image (required)
                       </p>
                     </div>

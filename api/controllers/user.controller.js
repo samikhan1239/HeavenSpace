@@ -1,7 +1,7 @@
 import Listing from "../models/listing.model.js";
-import jwt from "jsonwebtoken"; // Imported but not directly used here - kept for consistency
+import User from "../models/user.model.js"; // Added to fetch user manually
 
-// Error handler utility (should be defined somewhere in your codebase)
+// Error handler utility
 const errorHandler = (statusCode, message) => {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -14,14 +14,29 @@ export const test = (req, res) => {
   });
 };
 
+// Get all listings a user is allowed to see
 export const getUserListings = async (req, res) => {
   try {
     console.log("🔥 Route hit: /api/user/listings");
     console.log("Authenticated User:", req.user);
 
-    const authenticatedUserId = req.user.id; // Set by verifyToken middleware
+    const authenticatedUserId = req.user.id;
+    const userRole = req.user.role;
 
-    const listings = await Listing.find({ userRef: authenticatedUserId });
+    let listings;
+
+    if (userRole === "superadmin") {
+      // Superadmins see all listings
+      listings = await Listing.find();
+    } else if (userRole === "admin") {
+      // Admins see their own listings
+      listings = await Listing.find({ userRef: authenticatedUserId });
+    } else {
+      // Regular users see only admin-created listings
+      const adminUsers = await User.find({ role: "admin" }).select("_id");
+      const adminIds = adminUsers.map((user) => user._id.toString()); // Convert to strings
+      listings = await Listing.find({ userRef: { $in: adminIds } });
+    }
 
     if (!listings.length) {
       console.warn("⚠️ No listings found for user:", authenticatedUserId);
@@ -44,6 +59,7 @@ export const getUserListings = async (req, res) => {
   }
 };
 
+// Update a user's listing
 export const updateUserListing = async (req, res) => {
   try {
     console.log("🔥 Route hit: /api/user/listings/:id (PUT)");
@@ -52,18 +68,25 @@ export const updateUserListing = async (req, res) => {
     console.log("Authenticated User:", req.user);
 
     const authenticatedUserId = req.user.id;
+    const userRole = req.user.role;
     const listingId = req.params.id;
 
-    const listing = await Listing.findOne({
-      _id: listingId,
-      userRef: authenticatedUserId,
-    });
+    const listing = await Listing.findById(listingId);
 
     if (!listing) {
-      console.warn("⚠️ Listing not found or unauthorized:", listingId);
+      console.warn("⚠️ Listing not found:", listingId);
       return res.status(404).json({
         success: false,
-        message: "Listing not found or you don’t have access",
+        message: "Listing not found",
+      });
+    }
+
+    // Authorization: Superadmins can update any listing, others only their own
+    if (userRole !== "superadmin" && listing.userRef !== authenticatedUserId) {
+      console.warn("⚠️ Unauthorized update attempt by:", authenticatedUserId);
+      return res.status(403).json({
+        success: false,
+        message: "You don’t have permission to update this listing",
       });
     }
 
@@ -92,6 +115,7 @@ export const updateUserListing = async (req, res) => {
   }
 };
 
+// Delete a user's listing
 export const deleteUserListing = async (req, res) => {
   try {
     console.log("🔥 Route hit: /api/user/listings/:id (DELETE)");
@@ -120,10 +144,8 @@ export const deleteUserListing = async (req, res) => {
       });
     }
 
-    if (
-      userRole !== "superadmin" &&
-      listing.userRef.toString() !== authenticatedUserId
-    ) {
+    // Authorization: Superadmins can delete any listing, others only their own
+    if (userRole !== "superadmin" && listing.userRef !== authenticatedUserId) {
       console.warn("⚠️ Unauthorized deletion attempt by:", authenticatedUserId);
       return res.status(403).json({
         success: false,
@@ -148,24 +170,65 @@ export const deleteUserListing = async (req, res) => {
   }
 };
 
+// Get a specific listing by ID
 export const getUserListingById = async (req, res, next) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+    console.log("🔥 Route hit: /api/user/listings/:id (GET)");
+    console.log("Listing ID:", req.params.id);
+    console.log("Authenticated User:", req.user);
+
+    const authenticatedUserId = req.user.id;
+    const userRole = req.user.role;
+    const listingId = req.params.id;
+
+    const listing = await Listing.findById(listingId);
+
     if (!listing) {
+      console.warn("⚠️ Listing not found:", listingId);
       return next(errorHandler(404, "Listing not found"));
     }
 
+    // Manually fetch the user since userRef is a string
+    const creator = await User.findById(listing.userRef);
+    const creatorRole = creator?.role;
+
+    console.log("Listing Data:", {
+      id: listing._id,
+      userRef: listing.userRef,
+      user: listing.user,
+      creatorRole,
+    });
+
+    if (!creator) {
+      console.error("❌ No user found for userRef:", listing.userRef);
+      return next(errorHandler(500, "Server error: Creator not found"));
+    }
+
+    // Authorization logic:
+    // - Superadmins can see any listing
+    // - Admins can see their own listings or any admin-created listing
+    // - Users can see admin-created listings only
     if (
-      req.user.id !== listing.userRef.toString() &&
-      req.user.role !== "admin" &&
-      req.user.role !== "superadmin"
+      userRole === "superadmin" ||
+      (userRole === "admin" &&
+        (listing.userRef === authenticatedUserId || creatorRole === "admin")) ||
+      (userRole === "user" && creatorRole === "admin")
     ) {
+      console.log("✅ Listing fetched:", listingId);
+      return res.status(200).json({ ...listing._doc, user: creator }); // Include creator details
+    } else {
+      console.warn(
+        "⚠️ Unauthorized access attempt by:",
+        authenticatedUserId,
+        "Creator Role:",
+        creatorRole
+      );
       return next(
         errorHandler(403, "You are not authorized to view this listing")
       );
     }
-    res.status(200).json(listing);
   } catch (error) {
+    console.error("❌ Error fetching listing:", error.stack);
     next(error);
   }
 };

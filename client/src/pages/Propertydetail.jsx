@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import {
@@ -27,6 +27,7 @@ import {
 
 const PropertyDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate(); // Added for navigation
   const { listings } = useSelector((state) => state.listings);
   const [property, setProperty] = useState(null);
   const [similarProperties, setSimilarProperties] = useState([]);
@@ -52,7 +53,7 @@ const PropertyDetail = () => {
         if (foundProperty) {
           setProperty(foundProperty);
           setMainImage(
-            foundProperty.image?.[0] || "/placeholder.svg?height=600&width=800"
+            foundProperty.image?.[0] || "https://via.placeholder.com/150"
           );
           setSimilarProperties(
             listings
@@ -73,15 +74,11 @@ const PropertyDetail = () => {
             throw new Error(data.message || "Failed to fetch property");
           }
           setProperty(data);
-          setMainImage(
-            data.image?.[0] || "/placeholder.svg?height=600&width=800"
-          );
+          setMainImage(data.image?.[0] || "https://via.placeholder.com/150");
 
           const similarRes = await fetch(
             `/api/user/listings?propertyType=${data.propertyType}`,
-            {
-              credentials: "include",
-            }
+            { credentials: "include" }
           );
           const similarData = await similarRes.json();
 
@@ -125,7 +122,7 @@ const PropertyDetail = () => {
         }))
       : [
           {
-            img: "/placeholder.svg?height=300&width=400",
+            img: "https://via.placeholder.com/150",
             name: similar.name,
             location: similar.location,
             price: similar.price,
@@ -192,10 +189,10 @@ const PropertyDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-gray-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <motion.div
-            className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full mx-auto"
+            className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full mx-auto"
             animate={{ rotate: 360 }}
             transition={{
               duration: 1,
@@ -204,7 +201,7 @@ const PropertyDetail = () => {
             }}
           />
           <motion.p
-            className="mt-4 text-slate-600 font-medium"
+            className="mt-4 text-gray-600 font-medium"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -218,9 +215,9 @@ const PropertyDetail = () => {
 
   if (error || !property) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-gray-50 to-purple-50 flex items-center justify-center p-4">
         <motion.div
-          className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center"
+          className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-indigo-100"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
@@ -228,16 +225,16 @@ const PropertyDetail = () => {
           <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <span className="text-red-500 text-3xl">!</span>
           </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">
+          <h3 className="text-xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Property Not Found
           </h3>
-          <p className="text-slate-600 mb-6">
+          <p className="text-gray-600 mb-6">
             {error ||
               "We couldn't find the property you're looking for. It may have been removed or the link is incorrect."}
           </p>
           <button
-            onClick={() => window.history.back()}
-            className="bg-primary text-white px-6 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors"
+            onClick={() => navigate(-1)} // Changed to useNavigate
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-full font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors"
           >
             Go Back
           </button>
@@ -247,20 +244,30 @@ const PropertyDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-8 pb-16 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-gray-50 to-purple-50 pt-8 pb-16 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <motion.div
-          className="mb-6 text-sm text-slate-500"
+          className="mb-6 text-sm text-gray-600"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <span className="hover:text-primary cursor-pointer">Home</span>
+          <span
+            className="hover:text-indigo-600 cursor-pointer"
+            onClick={() => navigate("/")}
+          >
+            Home
+          </span>
           {" > "}{" "}
-          <span className="hover:text-primary cursor-pointer">Properties</span>
+          <span
+            className="hover:text-indigo-600 cursor-pointer"
+            onClick={() => navigate("/properties")}
+          >
+            Properties
+          </span>
           {" > "}{" "}
-          <span className="text-primary font-medium">
+          <span className="text-indigo-600 font-medium">
             {property.name || "Property Details"}
           </span>
         </motion.div>
@@ -274,7 +281,7 @@ const PropertyDetail = () => {
             initial="hidden"
             animate="visible"
           >
-            <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100">
+            <div className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100">
               {/* Main Image */}
               <div className="relative">
                 <motion.img
@@ -285,14 +292,14 @@ const PropertyDetail = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.8 }}
                   onError={(e) => {
-                    e.target.src = "/placeholder.svg?height=600&width=800";
+                    e.target.src = "https://via.placeholder.com/150";
                   }}
                 />
 
                 {/* Image Controls */}
                 <div className="absolute top-4 right-4 flex space-x-3">
                   <motion.button
-                    className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                    className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-indigo-50 transition-colors"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsFavorite(!isFavorite)}
@@ -301,16 +308,16 @@ const PropertyDetail = () => {
                       className={`w-5 h-5 ${
                         isFavorite
                           ? "fill-red-500 text-red-500"
-                          : "text-slate-700"
+                          : "text-red-600"
                       }`}
                     />
                   </motion.button>
                   <motion.button
-                    className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                    className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-indigo-50 transition-colors"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Share2 className="w-5 h-5 text-slate-700" />
+                    <Share2 className="w-5 h-5 text-indigo-600" />
                   </motion.button>
                 </div>
 
@@ -329,35 +336,34 @@ const PropertyDetail = () => {
               </div>
 
               {/* Thumbnail Gallery */}
-              <div className="p-4 border-t border-slate-100">
-                <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+              <div className="p-4 border-t border-indigo-100">
+                <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-indigo-300 scrollbar-track-gray-100">
                   {property.image && property.image.length > 0 ? (
                     property.image.map((img, index) => (
                       <motion.div
                         key={index}
                         className={`relative flex-shrink-0 cursor-pointer rounded-lg overflow-hidden ${
-                          mainImage === img ? "ring-2 ring-primary" : ""
+                          mainImage === img ? "ring-2 ring-indigo-500" : ""
                         }`}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handleImageClick(img)}
                       >
                         <img
-                          src={img || "/placeholder.svg"}
+                          src={img || "https://via.placeholder.com/150"}
                           alt={`${property.name} - Thumbnail ${index + 1}`}
                           className="w-24 h-24 object-cover"
                           onError={(e) => {
-                            e.target.src =
-                              "/placeholder.svg?height=150&width=150";
+                            e.target.src = "https://via.placeholder.com/150";
                           }}
                         />
                         {mainImage === img && (
-                          <div className="absolute inset-0 bg-primary/10 border border-primary"></div>
+                          <div className="absolute inset-0 bg-indigo-500/10 border border-indigo-500"></div>
                         )}
                       </motion.div>
                     ))
                   ) : (
-                    <div className="w-24 h-24 bg-slate-100 flex items-center justify-center text-slate-400 rounded-lg">
+                    <div className="w-24 h-24 bg-indigo-50 flex items-center justify-center text-indigo-400 rounded-lg">
                       No Images
                     </div>
                   )}
@@ -374,15 +380,15 @@ const PropertyDetail = () => {
             animate="visible"
             transition={{ delay: 0.2 }}
           >
-            <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100 sticky top-4">
+            <div className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 sticky top-4">
               <div className="p-6">
                 {/* Property Title & Location */}
                 <div className="mb-6">
-                  <h1 className="text-2xl font-bold text-slate-900 mb-2">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">
                     {property.name || "Unnamed Property"}
                   </h1>
-                  <div className="flex items-center text-slate-600">
-                    <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="w-4 h-4 mr-1 flex-shrink-0 text-blue-500" />
                     <p className="text-sm truncate">
                       {property.location || "Location not specified"}
                     </p>
@@ -390,17 +396,17 @@ const PropertyDetail = () => {
                 </div>
 
                 {/* Price */}
-                <div className="mb-6 bg-slate-50 p-4 rounded-xl">
+                <div className="mb-6 bg-indigo-50 p-4 rounded-xl">
                   <div className="flex items-baseline">
-                    <span className="text-3xl font-bold text-primary">
+                    <span className="text-3xl font-bold text-gray-900">
                       ₹{property.price.toLocaleString()}
                     </span>
-                    <span className="text-slate-600 ml-1">/month</span>
+                    <span className="text-gray-600 ml-1">/month</span>
                   </div>
 
                   {property.discountPrice && (
                     <div className="mt-1 flex items-center">
-                      <span className="text-sm text-slate-500 line-through">
+                      <span className="text-sm text-gray-500 line-through">
                         ₹
                         {(
                           property.price + property.discountPrice
@@ -416,31 +422,31 @@ const PropertyDetail = () => {
                 {/* Quick Info */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="flex items-center">
-                    <Home className="w-5 h-5 text-primary mr-2" />
+                    <Home className="w-5 h-5 text-gray-900 mr-2" />
                     <div>
-                      <p className="text-xs text-slate-500">Property Type</p>
-                      <p className="text-sm font-medium">
+                      <p className="text-xs text-gray-500">Property Type</p>
+                      <p className="text-sm font-medium text-gray-900">
                         {property.propertyType || "N/A"}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center">
-                    <Users className="w-5 h-5 text-primary mr-2" />
+                    <Users className="w-5 h-5 text-gray-900 mr-2" />
                     <div>
-                      <p className="text-xs text-slate-500">For</p>
-                      <p className="text-sm font-medium">
+                      <p className="text-xs text-gray-500">For</p>
+                      <p className="text-sm font-medium text-gray-900">
                         {property.genderPreference || "Any"}
                       </p>
                     </div>
                   </div>
                   {property.roomType && (
                     <div className="flex items-center">
-                      <div className="w-5 h-5 text-primary mr-2 flex items-center justify-center">
+                      <div className="w-5 h-5 text-gray-900 mr-2 flex items-center justify-center">
                         <span className="text-xs font-bold">R</span>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">Room Type</p>
-                        <p className="text-sm font-medium">
+                        <p className="text-xs text-gray-500">Room Type</p>
+                        <p className="text-sm font-medium text-gray-900">
                           {property.roomType}
                         </p>
                       </div>
@@ -448,14 +454,12 @@ const PropertyDetail = () => {
                   )}
                   {property.availableRooms && (
                     <div className="flex items-center">
-                      <div className="w-5 h-5 text-primary mr-2 flex items-center justify-center">
+                      <div className="w-5 h-5 text-gray-900 mr-2 flex items-center justify-center">
                         <span className="text-xs font-bold">#</span>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">
-                          Available Rooms
-                        </p>
-                        <p className="text-sm font-medium">
+                        <p className="text-xs text-gray-500">Available Rooms</p>
+                        <p className="text-sm font-medium text-gray-900">
                           {property.availableRooms}
                         </p>
                       </div>
@@ -463,24 +467,24 @@ const PropertyDetail = () => {
                   )}
                   {property.securityDeposit && (
                     <div className="flex items-center">
-                      <div className="w-5 h-5 text-primary mr-2 flex items-center justify-center">
+                      <div className="w-5 h-5 text-gray-900 mr-2 flex items-center justify-center">
                         <span className="text-xs font-bold">₹</span>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-gray-500">
                           Security Deposit
                         </p>
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium text-gray-900">
                           ₹{property.securityDeposit.toLocaleString()}
                         </p>
                       </div>
                     </div>
                   )}
                   <div className="flex items-center">
-                    <Calendar className="w-5 h-5 text-primary mr-2" />
+                    <Calendar className="w-5 h-5 text-gray-900 mr-2" />
                     <div>
-                      <p className="text-xs text-slate-500">Category</p>
-                      <p className="text-sm font-medium">
+                      <p className="text-xs text-gray-500">Category</p>
+                      <p className="text-sm font-medium text-gray-900">
                         {property.category || "N/A"}
                       </p>
                     </div>
@@ -489,7 +493,7 @@ const PropertyDetail = () => {
 
                 {/* Contact Button */}
                 <motion.button
-                  className="w-full bg-primary text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-primary/90 transition-colors"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:from-indigo-700 hover:to-purple-700 transition-colors"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => scrollToSection(contactRef, "contact")}
@@ -507,7 +511,7 @@ const PropertyDetail = () => {
 
         {/* Navigation Tabs */}
         <motion.div
-          className="sticky top-0 z-10 bg-white shadow-sm rounded-full mt-8 mb-8 border border-slate-100 overflow-hidden"
+          className="sticky top-0 z-10 bg-gradient-to-r from-gray-50 to-indigo-50 shadow-md rounded-full mt-8 mb-8 border border-indigo-100 overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -525,8 +529,8 @@ const PropertyDetail = () => {
                 onClick={() => scrollToSection(ref, id)}
                 className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
                   activeSection === id
-                    ? "text-primary border-b-2 border-primary"
-                    : "text-slate-600 hover:text-primary hover:bg-slate-50"
+                    ? "text-indigo-600 border-b-2 border-indigo-600"
+                    : "text-gray-600 hover:text-indigo-600 hover:bg-indigo-100"
                 }`}
               >
                 {label}
@@ -540,14 +544,14 @@ const PropertyDetail = () => {
           {/* Overview Section */}
           <motion.section
             ref={overviewRef}
-            className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100 p-8"
+            className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
             variants={fadeInUp}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
           >
-            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
-              <span className="bg-primary/10 text-primary p-2 rounded-lg mr-3">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+              <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <Home className="w-5 h-5" />
               </span>
               Overview
@@ -555,43 +559,43 @@ const PropertyDetail = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div className="flex justify-between p-4 bg-slate-50 rounded-xl">
-                  <span className="text-slate-600">Type</span>
-                  <span className="font-medium text-slate-900">
+                <div className="flex justify-between p-4 bg-indigo-50 rounded-xl">
+                  <span className="text-gray-600">Type</span>
+                  <span className="font-medium text-gray-900">
                     {property.propertyType || "N/A"}
                   </span>
                 </div>
-                <div className="flex justify-between p-4 bg-slate-50 rounded-xl">
-                  <span className="text-slate-600">Room Type</span>
-                  <span className="font-medium text-slate-900">
+                <div className="flex justify-between p-4 bg-indigo-50 rounded-xl">
+                  <span className="text-gray-600">Room Type</span>
+                  <span className="font-medium text-gray-900">
                     {property.roomType || "N/A"}
                   </span>
                 </div>
                 {(property.propertyType === "Room" ||
                   property.propertyType === "Hostel") && (
-                  <div className="flex justify-between p-4 bg-slate-50 rounded-xl">
-                    <span className="text-slate-600">Rooms Available</span>
-                    <span className="font-medium text-slate-900">
+                  <div className="flex justify-between p-4 bg-indigo-50 rounded-xl">
+                    <span className="text-gray-600">Rooms Available</span>
+                    <span className="font-medium text-gray-900">
                       {property.availableRooms || "N/A"}
                     </span>
                   </div>
                 )}
               </div>
               <div className="space-y-4">
-                <div className="flex justify-between p-4 bg-slate-50 rounded-xl">
-                  <span className="text-slate-600">Category</span>
-                  <span className="font-medium text-slate-900">
+                <div className="flex justify-between p-4 bg-indigo-50 rounded-xl">
+                  <span className="text-gray-600">Category</span>
+                  <span className="font-medium text-gray-900">
                     {property.category || "N/A"}
                   </span>
                 </div>
-                <div className="flex justify-between p-4 bg-slate-50 rounded-xl">
-                  <span className="text-slate-600">Gender Preference</span>
-                  <span className="font-medium text-slate-900">
+                <div className="flex justify-between p-4 bg-indigo-50 rounded-xl">
+                  <span className="text-gray-600">Gender Preference</span>
+                  <span className="font-medium text-gray-900">
                     {property.genderPreference || "Any"}
                   </span>
                 </div>
-                <div className="flex justify-between p-4 bg-slate-50 rounded-xl">
-                  <span className="text-slate-600">Availability</span>
+                <div className="flex justify-between p-4 bg-indigo-50 rounded-xl">
+                  <span className="text-gray-600">Availability</span>
                   <span
                     className={`font-medium ${
                       property.availability === "Available"
@@ -609,14 +613,14 @@ const PropertyDetail = () => {
           {/* Pricing Section */}
           <motion.section
             ref={pricingRef}
-            className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100 p-8"
+            className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
             variants={fadeInUp}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
           >
-            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
-              <span className="bg-primary/10 text-primary p-2 rounded-lg mr-3">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+              <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <span className="font-bold">₹</span>
               </span>
               Pricing Details
@@ -624,18 +628,18 @@ const PropertyDetail = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl p-6 mb-6">
-                  <p className="text-slate-600 mb-2">Monthly Rent</p>
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 mb-6">
+                  <p className="text-gray-600 mb-2">Monthly Rent</p>
                   <div className="flex items-baseline">
-                    <span className="text-4xl font-bold text-primary">
+                    <span className="text-4xl font-bold text-gray-900">
                       ₹{property.price.toLocaleString()}
                     </span>
-                    <span className="text-slate-600 ml-1">/month</span>
+                    <span className="text-gray-600 ml-1">/month</span>
                   </div>
 
                   {property.discountPrice && (
                     <div className="mt-3 flex items-center">
-                      <span className="text-sm text-slate-500 line-through">
+                      <span className="text-sm text-gray-500 line-through">
                         ₹
                         {(
                           property.price + property.discountPrice
@@ -655,11 +659,11 @@ const PropertyDetail = () => {
 
                 {property.securityDeposit && (
                   <motion.div
-                    className="bg-slate-50 rounded-xl p-4 flex justify-between items-center"
-                    whileHover={{ backgroundColor: "#f8fafc" }}
+                    className="bg-indigo-50 rounded-xl p-4 flex justify-between items-center"
+                    whileHover={{ backgroundColor: "#eef2ff" }}
                   >
-                    <span className="text-slate-600">Security Deposit</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-gray-600">Security Deposit</span>
+                    <span className="font-medium text-gray-900">
                       ₹{property.securityDeposit.toLocaleString()}
                     </span>
                   </motion.div>
@@ -670,32 +674,32 @@ const PropertyDetail = () => {
                 {property.listingType === "Broker" &&
                   property.brokeragePrice && (
                     <motion.div
-                      className="bg-slate-50 rounded-xl p-4 flex justify-between items-center"
-                      whileHover={{ backgroundColor: "#f8fafc" }}
+                      className="bg-indigo-50 rounded-xl p-4 flex justify-between items-center"
+                      whileHover={{ backgroundColor: "#eef2ff" }}
                     >
-                      <span className="text-slate-600">Brokerage Fee</span>
-                      <span className="font-medium text-slate-900">
+                      <span className="text-gray-600">Brokerage Fee</span>
+                      <span className="font-medium text-gray-900">
                         ₹{property.brokeragePrice.toLocaleString()}
                       </span>
                     </motion.div>
                   )}
 
-                <div className="bg-slate-50 rounded-xl p-6 mt-4">
-                  <h3 className="text-lg font-medium text-slate-900 mb-4">
+                <div className="bg-indigo-50 rounded-xl p-6 mt-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                     Payment Summary
                   </h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-slate-600">First Month Rent</span>
-                      <span className="font-medium">
+                      <span className="text-gray-600">First Month Rent</span>
+                      <span className="font-medium text-gray-900">
                         ₹{property.price.toLocaleString()}
                       </span>
                     </div>
 
                     {property.securityDeposit && (
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Security Deposit</span>
-                        <span className="font-medium">
+                        <span className="text-gray-600">Security Deposit</span>
+                        <span className="font-medium text-gray-900">
                           ₹{property.securityDeposit.toLocaleString()}
                         </span>
                       </div>
@@ -704,19 +708,19 @@ const PropertyDetail = () => {
                     {property.listingType === "Broker" &&
                       property.brokeragePrice && (
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Brokerage Fee</span>
-                          <span className="font-medium">
+                          <span className="text-gray-600">Brokerage Fee</span>
+                          <span className="font-medium text-gray-900">
                             ₹{property.brokeragePrice.toLocaleString()}
                           </span>
                         </div>
                       )}
 
-                    <div className="border-t border-slate-200 pt-3 mt-3">
+                    <div className="border-t border-indigo-200 pt-3 mt-3">
                       <div className="flex justify-between font-medium">
-                        <span className="text-slate-900">
+                        <span className="text-gray-900">
                           Total Initial Payment
                         </span>
-                        <span className="text-primary">
+                        <span className="text-indigo-600">
                           ₹
                           {(
                             property.price +
@@ -735,14 +739,14 @@ const PropertyDetail = () => {
           {/* Amenities Section */}
           <motion.section
             ref={amenitiesRef}
-            className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100 p-8"
+            className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
             variants={fadeInUp}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
           >
-            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
-              <span className="bg-primary/10 text-primary p-2 rounded-lg mr-3">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+              <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <Sparkles className="w-5 h-5" />
               </span>
               Amenities
@@ -800,14 +804,14 @@ const PropertyDetail = () => {
                 property[key] ? (
                   <motion.div
                     key={key}
-                    className="flex items-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
+                    className="flex items-center p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
                     variants={fadeInUp}
                     whileHover={{ scale: 1.05 }}
                   >
-                    <span className="bg-primary/10 text-primary p-2 rounded-lg mr-3">
+                    <span className="bg-indigo-100 text-indigo-600 p-2 rounded-lg mr-3">
                       {icon}
                     </span>
-                    <span className="font-medium">{label}</span>
+                    <span className="font-medium text-gray-900">{label}</span>
                   </motion.div>
                 ) : null
               )}
@@ -822,10 +826,10 @@ const PropertyDetail = () => {
                 "wifi",
               ].every((key) => !property[key]) && (
                 <motion.div
-                  className="col-span-full p-6 bg-slate-50 rounded-xl text-center"
+                  className="col-span-full p-6 bg-indigo-50 rounded-xl text-center"
                   variants={fadeInUp}
                 >
-                  <p className="text-slate-500 italic">
+                  <p className="text-gray-500 italic">
                     No amenities listed for this property
                   </p>
                 </motion.div>
@@ -836,20 +840,20 @@ const PropertyDetail = () => {
           {/* Furnishing Section */}
           <motion.section
             ref={furnishingRef}
-            className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100 p-8"
+            className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
             variants={fadeInUp}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
           >
-            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
-              <span className="bg-primary/10 text-primary p-2 rounded-lg mr-3">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+              <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <Home className="w-5 h-5" />
               </span>
               Furnishing
             </h2>
 
-            <div className="bg-slate-50 p-6 rounded-xl">
+            <div className="bg-indigo-50 p-6 rounded-xl">
               <div className="flex items-center mb-4">
                 <div
                   className={`w-3 h-3 rounded-full mr-2 ${
@@ -858,16 +862,16 @@ const PropertyDetail = () => {
                       : property.furnishing === "Semi Furnished"
                       ? "bg-yellow-500"
                       : property.furnishing === "Unfurnished"
-                      ? "bg-slate-400"
-                      : "bg-slate-300"
+                      ? "bg-gray-400"
+                      : "bg-gray-300"
                   }`}
                 ></div>
-                <h3 className="text-lg font-medium text-slate-900">
+                <h3 className="text-lg font-medium text-gray-900">
                   {property.furnishing || "Furnishing details not specified"}
                 </h3>
               </div>
 
-              <p className="text-slate-600">
+              <p className="text-gray-600">
                 {property.furnishing === "Fully Furnished"
                   ? "This property comes with all essential furniture and appliances for immediate move-in."
                   : property.furnishing === "Semi Furnished"
@@ -882,22 +886,22 @@ const PropertyDetail = () => {
           {/* Contact Information Section */}
           <motion.section
             ref={contactRef}
-            className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100 p-8"
+            className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
             variants={fadeInUp}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
           >
-            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
-              <span className="bg-primary/10 text-primary p-2 rounded-lg mr-3">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+              <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <Phone className="w-5 h-5" />
               </span>
               Contact Information
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-slate-50 p-6 rounded-xl">
-                <h3 className="text-lg font-medium text-slate-900 mb-4">
+              <div className="bg-indigo-50 p-6 rounded-xl">
+                <h3 className="text-lg font-medium text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   {property.listingType === "Broker"
                     ? "Broker Details"
                     : "Owner Details"}
@@ -905,8 +909,8 @@ const PropertyDetail = () => {
 
                 <div className="space-y-4">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                      <span className="text-primary font-bold">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                      <span className="text-indigo-600 font-bold">
                         {property.listingType === "Broker"
                           ? property.brokerName
                             ? property.brokerName.charAt(0).toUpperCase()
@@ -917,12 +921,12 @@ const PropertyDetail = () => {
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-slate-900">
+                      <p className="font-medium text-gray-900">
                         {property.listingType === "Broker"
                           ? property.brokerName || "Broker"
                           : property.ownerName || "Owner"}
                       </p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-gray-500">
                         {property.listingType || "Direct Owner"}
                       </p>
                     </div>
@@ -930,16 +934,16 @@ const PropertyDetail = () => {
 
                   {property.listingType === "Broker" ? (
                     <div className="flex items-center p-3 bg-white rounded-lg">
-                      <Phone className="w-5 h-5 text-primary mr-3" />
-                      <span>
+                      <Phone className="w-5 h-5 text-indigo-600 mr-3" />
+                      <span className="text-gray-900">
                         {property.brokerContact ||
                           "Contact information not available"}
                       </span>
                     </div>
                   ) : (
                     <div className="flex items-center p-3 bg-white rounded-lg">
-                      <Phone className="w-5 h-5 text-primary mr-3" />
-                      <span>
+                      <Phone className="w-5 h-5 text-indigo-600 mr-3" />
+                      <span className="text-gray-900">
                         {property.ownerContact ||
                           "Contact information not available"}
                       </span>
@@ -948,15 +952,15 @@ const PropertyDetail = () => {
 
                   {property.phoneNo && (
                     <div className="flex items-center p-3 bg-white rounded-lg">
-                      <Phone className="w-5 h-5 text-primary mr-3" />
-                      <span>{property.phoneNo}</span>
+                      <Phone className="w-5 h-5 text-indigo-600 mr-3" />
+                      <span className="text-gray-900">{property.phoneNo}</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-primary/5 p-6 rounded-xl">
-                <h3 className="text-lg font-medium text-slate-900 mb-4">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl">
+                <h3 className="text-lg font-medium text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   Send a Message
                 </h3>
 
@@ -965,26 +969,26 @@ const PropertyDetail = () => {
                     <input
                       type="text"
                       placeholder="Your Name"
-                      className="w-full p-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="w-full p-3 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
                     />
                   </div>
                   <div>
                     <input
                       type="email"
                       placeholder="Your Email"
-                      className="w-full p-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="w-full p-3 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
                     />
                   </div>
                   <div>
                     <textarea
                       placeholder="Your Message"
                       rows={3}
-                      className="w-full p-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="w-full p-3 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
                     ></textarea>
                   </div>
                   <motion.button
                     type="button"
-                    className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -998,7 +1002,7 @@ const PropertyDetail = () => {
           {/* Similar Properties Slider */}
           {similarProperties.length > 0 && (
             <motion.section
-              className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100 p-8"
+              className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
               ref={sliderRef}
               variants={fadeInUp}
               initial="hidden"
@@ -1006,8 +1010,8 @@ const PropertyDetail = () => {
               viewport={{ once: true, margin: "-100px" }}
             >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 flex items-center">
-                  <span className="bg-primary/10 text-primary p-2 rounded-lg mr-3">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+                  <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                     <Home className="w-5 h-5" />
                   </span>
                   Similar Properties
@@ -1016,21 +1020,21 @@ const PropertyDetail = () => {
                 <div className="flex space-x-2">
                   <motion.button
                     onClick={handlePrevSlide}
-                    className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
+                    className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center hover:bg-indigo-100 transition-colors"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    disabled={allImages.length <= 5}
+                    disabled={allImages.length <= 3} // Adjusted to 3 for smaller screens
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-5 h-5 text-indigo-600" />
                   </motion.button>
                   <motion.button
                     onClick={handleNextSlide}
-                    className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
+                    className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center hover:bg-indigo-100 transition-colors"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    disabled={allImages.length <= 5}
+                    disabled={allImages.length <= 3} // Adjusted to 3 for smaller screens
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-5 h-5 text-indigo-600" />
                   </motion.button>
                 </div>
               </div>
@@ -1038,53 +1042,63 @@ const PropertyDetail = () => {
               <div className="relative overflow-hidden">
                 <motion.div
                   className="flex transition-all duration-500 ease-in-out"
-                  animate={{ x: `-${currentSlide * 20}%` }}
+                  animate={{
+                    x: `-${
+                      currentSlide *
+                      (window.innerWidth < 768
+                        ? 100
+                        : window.innerWidth < 1024
+                        ? 50
+                        : 20)
+                    }%`,
+                  }}
                 >
                   {allImages.length > 0 ? (
                     allImages.map(({ img, name, location, price, id }) => (
                       <motion.div
                         key={id}
-                        className="w-1/5 flex-shrink-0 px-2"
+                        className="flex-shrink-0 px-2 w-full md:w-1/2 lg:w-1/5" // Responsive widths
                         whileHover={{ y: -5 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100 hover:shadow-md transition-shadow">
+                        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-indigo-100 hover:shadow-xl transition-shadow">
                           <div className="relative h-48 overflow-hidden">
                             <img
-                              src={img || "/placeholder.svg"}
+                              src={img || "https://via.placeholder.com/150"}
                               alt={name || "Similar Property"}
                               className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                               onError={(e) => {
                                 e.target.src =
-                                  "/placeholder.svg?height=300&width=400";
+                                  "https://via.placeholder.com/150";
                               }}
                             />
                             <div className="absolute bottom-2 left-2">
-                              <span className="px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium rounded-full">
+                              <span className="px-2 py-1 bg-indigo-50/90 backdrop-blur-sm text-xs font-medium rounded-full text-indigo-600">
                                 Similar
                               </span>
                             </div>
                           </div>
                           <div className="p-4">
-                            <h3 className="font-medium text-slate-900 truncate">
+                            <h3 className="font-medium text-gray-900 truncate">
                               {name || "Unnamed Property"}
                             </h3>
-                            <div className="flex items-center text-slate-500 text-sm mt-1">
-                              <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                            <div className="flex items-center text-gray-600 text-sm mt-1">
+                              <MapPin className="w-3 h-3 mr-1 flex-shrink-0 text-indigo-600" />
                               <p className="truncate">
                                 {location || "Location not specified"}
                               </p>
                             </div>
                             <div className="mt-3 flex items-center justify-between">
-                              <p className="font-bold text-primary">
+                              <p className="font-bold text-indigo-600">
                                 ₹{price.toLocaleString()}
-                                <span className="text-xs font-normal text-slate-500">
+                                <span className="text-xs font-normal text-gray-500">
                                   /mo
                                 </span>
                               </p>
                               <motion.button
-                                className="text-primary text-sm font-medium flex items-center"
+                                className="text-indigo-600 text-sm font-medium flex items-center"
                                 whileHover={{ x: 3 }}
+                                onClick={() => navigate(`/property/${id}`)}
                               >
                                 View <ArrowRight className="w-3 h-3 ml-1" />
                               </motion.button>
@@ -1095,7 +1109,7 @@ const PropertyDetail = () => {
                     ))
                   ) : (
                     <div className="w-full p-8 text-center">
-                      <p className="text-slate-500">
+                      <p className="text-gray-500">
                         No similar properties found
                       </p>
                     </div>
@@ -1103,17 +1117,25 @@ const PropertyDetail = () => {
                 </motion.div>
               </div>
 
-              {allImages.length > 5 && (
+              {allImages.length > 3 && (
                 <div className="flex justify-center mt-6 space-x-1">
                   {Array.from({
-                    length: Math.max(0, allImages.length - 4),
+                    length: Math.max(
+                      0,
+                      allImages.length -
+                        (window.innerWidth < 768
+                          ? 0
+                          : window.innerWidth < 1024
+                          ? 1
+                          : 4)
+                    ),
                   }).map((_, index) => (
                     <button
                       key={index}
                       className={`w-2 h-2 rounded-full transition-all duration-300 ${
                         currentSlide === index
-                          ? "bg-primary w-4"
-                          : "bg-slate-300"
+                          ? "bg-indigo-600 w-4"
+                          : "bg-indigo-300"
                       }`}
                       onClick={() => setCurrentSlide(index)}
                     />
@@ -1125,7 +1147,7 @@ const PropertyDetail = () => {
 
           {/* Call to Action */}
           <motion.div
-            className="bg-gradient-to-r from-primary/80 to-primary rounded-3xl shadow-lg overflow-hidden p-8 text-center text-white"
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl shadow-lg overflow-hidden p-8 text-center text-white"
             variants={fadeInUp}
             initial="hidden"
             whileInView="visible"
@@ -1144,7 +1166,7 @@ const PropertyDetail = () => {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <motion.button
-                className="bg-white text-primary px-8 py-3 rounded-xl font-semibold hover:bg-white/90 transition-colors"
+                className="bg-white text-indigo-600 px-8 py-3 rounded-xl font-semibold hover:bg-indigo-50 transition-colors"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => scrollToSection(contactRef, "contact")}
@@ -1152,9 +1174,10 @@ const PropertyDetail = () => {
                 Contact Now
               </motion.button>
               <motion.button
-                className="bg-primary/20 backdrop-blur-sm border border-white/30 text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary/30 transition-colors"
+                className="bg-indigo-500/20 backdrop-blur-sm border border-white/30 text-white px-8 py-3 rounded-xl font-semibold hover:bg-indigo-600/30 transition-colors"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/properties")}
               >
                 Explore More Properties
               </motion.button>
