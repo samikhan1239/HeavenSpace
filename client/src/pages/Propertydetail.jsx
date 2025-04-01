@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate
+import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import {
@@ -23,11 +23,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
+  CheckCircle,
+  CreditCard,
 } from "lucide-react";
 
 const PropertyDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // Added for navigation
+  const navigate = useNavigate();
   const { listings } = useSelector((state) => state.listings);
   const [property, setProperty] = useState(null);
   const [similarProperties, setSimilarProperties] = useState([]);
@@ -37,6 +39,8 @@ const PropertyDetail = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeSection, setActiveSection] = useState("overview");
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null);
 
   const overviewRef = useRef(null);
   const pricingRef = useRef(null);
@@ -70,23 +74,22 @@ const PropertyDetail = () => {
             credentials: "include",
           });
           const data = await res.json();
-          if (!res.ok) {
+          if (!res.ok)
             throw new Error(data.message || "Failed to fetch property");
-          }
           setProperty(data);
           setMainImage(data.image?.[0] || "https://via.placeholder.com/150");
 
           const similarRes = await fetch(
             `/api/user/listings?propertyType=${data.propertyType}`,
-            { credentials: "include" }
+            {
+              credentials: "include",
+            }
           );
           const similarData = await similarRes.json();
-
-          if (!similarRes.ok) {
+          if (!similarRes.ok)
             throw new Error(
               similarData.message || "Failed to fetch similar properties"
             );
-          }
 
           const similarArray = Array.isArray(similarData)
             ? similarData
@@ -95,7 +98,6 @@ const PropertyDetail = () => {
             : Array.isArray(similarData?.data)
             ? similarData.data
             : [];
-
           setSimilarProperties(
             similarArray.filter((item) => item._id !== data._id).slice(0, 5)
           );
@@ -142,9 +144,7 @@ const PropertyDetail = () => {
     }
   }, [allImages]);
 
-  const handleImageClick = (img) => {
-    setMainImage(img);
-  };
+  const handleImageClick = (img) => setMainImage(img);
 
   const scrollToSection = (ref, section) => {
     ref.current?.scrollIntoView({ behavior: "smooth" });
@@ -163,6 +163,75 @@ const PropertyDetail = () => {
     );
   };
 
+  // Load Razorpay script dynamically
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // Initiate dummy payment (mock order creation)
+  const initiatePayment = async () => {
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded) {
+      alert("Failed to load Razorpay SDK");
+      return;
+    }
+
+    // Mock order data (replace with actual backend call in production)
+    const orderData = {
+      id: `order_${Date.now()}`,
+      amount: (property.price + (property.securityDeposit || 0)) * 100, // Amount in paise
+      currency: "INR",
+    };
+
+    const options = {
+      key: "rzp_test_9QndpvcdDDqBTk", // Replace with your Razorpay Test Key ID
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: "Property Booking",
+      description: `Payment for ${property.name}`,
+      order_id: orderData.id,
+      handler: function (response) {
+        setPaymentStatus({
+          paymentId: response.razorpay_payment_id,
+          orderId: response.razorpay_order_id,
+          signature: response.razorpay_signature,
+        });
+        setShowOrderModal(false);
+      },
+      prefill: {
+        name: "Customer Name",
+        email: "customer@example.com",
+        contact: "9999999999",
+      },
+      theme: {
+        color: "#4F46E5",
+      },
+      modal: {
+        ondismiss: function () {
+          setPaymentStatus({ error: "Payment window closed" });
+          setShowOrderModal(false);
+        },
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.on("payment.failed", function (response) {
+      setPaymentStatus({ error: response.error.description });
+      setShowOrderModal(false);
+    });
+    rzp.open();
+  };
+
+  const resetPayment = () => {
+    setPaymentStatus(null);
+  };
+
   const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -174,12 +243,7 @@ const PropertyDetail = () => {
 
   const staggerContainer = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const pulseAnimation = {
@@ -233,7 +297,7 @@ const PropertyDetail = () => {
               "We couldn't find the property you're looking for. It may have been removed or the link is incorrect."}
           </p>
           <button
-            onClick={() => navigate(-1)} // Changed to useNavigate
+            onClick={() => navigate(-1)}
             className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-full font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors"
           >
             Go Back
@@ -258,14 +322,14 @@ const PropertyDetail = () => {
             onClick={() => navigate("/")}
           >
             Home
-          </span>
+          </span>{" "}
           {" > "}{" "}
           <span
             className="hover:text-indigo-600 cursor-pointer"
             onClick={() => navigate("/properties")}
           >
             Properties
-          </span>
+          </span>{" "}
           {" > "}{" "}
           <span className="text-indigo-600 font-medium">
             {property.name || "Property Details"}
@@ -274,7 +338,6 @@ const PropertyDetail = () => {
 
         {/* Main Container */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Gallery */}
           <motion.div
             className="lg:col-span-2"
             variants={fadeInUp}
@@ -282,7 +345,6 @@ const PropertyDetail = () => {
             animate="visible"
           >
             <div className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100">
-              {/* Main Image */}
               <div className="relative">
                 <motion.img
                   src={mainImage}
@@ -291,12 +353,10 @@ const PropertyDetail = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.8 }}
-                  onError={(e) => {
-                    e.target.src = "https://via.placeholder.com/150";
-                  }}
+                  onError={(e) =>
+                    (e.target.src = "https://via.placeholder.com/150")
+                  }
                 />
-
-                {/* Image Controls */}
                 <div className="absolute top-4 right-4 flex space-x-3">
                   <motion.button
                     className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-indigo-50 transition-colors"
@@ -320,8 +380,6 @@ const PropertyDetail = () => {
                     <Share2 className="w-5 h-5 text-indigo-600" />
                   </motion.button>
                 </div>
-
-                {/* Status Badge */}
                 <div className="absolute bottom-4 left-4">
                   <span
                     className={`px-4 py-2 rounded-full text-sm font-medium ${
@@ -334,8 +392,6 @@ const PropertyDetail = () => {
                   </span>
                 </div>
               </div>
-
-              {/* Thumbnail Gallery */}
               <div className="p-4 border-t border-indigo-100">
                 <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-indigo-300 scrollbar-track-gray-100">
                   {property.image && property.image.length > 0 ? (
@@ -353,9 +409,9 @@ const PropertyDetail = () => {
                           src={img || "https://via.placeholder.com/150"}
                           alt={`${property.name} - Thumbnail ${index + 1}`}
                           className="w-24 h-24 object-cover"
-                          onError={(e) => {
-                            e.target.src = "https://via.placeholder.com/150";
-                          }}
+                          onError={(e) =>
+                            (e.target.src = "https://via.placeholder.com/150")
+                          }
                         />
                         {mainImage === img && (
                           <div className="absolute inset-0 bg-indigo-500/10 border border-indigo-500"></div>
@@ -372,7 +428,6 @@ const PropertyDetail = () => {
             </div>
           </motion.div>
 
-          {/* Right Column - Property Info */}
           <motion.div
             className="lg:col-span-1"
             variants={fadeInUp}
@@ -382,7 +437,6 @@ const PropertyDetail = () => {
           >
             <div className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 sticky top-4">
               <div className="p-6">
-                {/* Property Title & Location */}
                 <div className="mb-6">
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">
                     {property.name || "Unnamed Property"}
@@ -394,8 +448,6 @@ const PropertyDetail = () => {
                     </p>
                   </div>
                 </div>
-
-                {/* Price */}
                 <div className="mb-6 bg-indigo-50 p-4 rounded-xl">
                   <div className="flex items-baseline">
                     <span className="text-3xl font-bold text-gray-900">
@@ -403,7 +455,6 @@ const PropertyDetail = () => {
                     </span>
                     <span className="text-gray-600 ml-1">/month</span>
                   </div>
-
                   {property.discountPrice && (
                     <div className="mt-1 flex items-center">
                       <span className="text-sm text-gray-500 line-through">
@@ -418,8 +469,6 @@ const PropertyDetail = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Quick Info */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="flex items-center">
                     <Home className="w-5 h-5 text-gray-900 mr-2" />
@@ -490,10 +539,8 @@ const PropertyDetail = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Contact Button */}
                 <motion.button
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:from-indigo-700 hover:to-purple-700 transition-colors"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:from-indigo-700 hover:to-purple-700 transition-colors mb-4"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => scrollToSection(contactRef, "contact")}
@@ -503,6 +550,15 @@ const PropertyDetail = () => {
                     Contact{" "}
                     {property.listingType === "Broker" ? "Broker" : "Owner"}
                   </span>
+                </motion.button>
+                <motion.button
+                  className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:from-green-700 hover:to-teal-700 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowOrderModal(true)}
+                >
+                  <CreditCard className="w-5 h-5" />
+                  <span>Book Now</span>
                 </motion.button>
               </div>
             </div>
@@ -541,7 +597,6 @@ const PropertyDetail = () => {
 
         {/* Content Sections */}
         <div className="space-y-8">
-          {/* Overview Section */}
           <motion.section
             ref={overviewRef}
             className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
@@ -553,10 +608,9 @@ const PropertyDetail = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
               <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <Home className="w-5 h-5" />
-              </span>
+              </span>{" "}
               Overview
             </h2>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="flex justify-between p-4 bg-indigo-50 rounded-xl">
@@ -610,7 +664,6 @@ const PropertyDetail = () => {
             </div>
           </motion.section>
 
-          {/* Pricing Section */}
           <motion.section
             ref={pricingRef}
             className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
@@ -622,10 +675,9 @@ const PropertyDetail = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
               <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <span className="font-bold">₹</span>
-              </span>
+              </span>{" "}
               Pricing Details
             </h2>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 mb-6">
@@ -636,7 +688,6 @@ const PropertyDetail = () => {
                     </span>
                     <span className="text-gray-600 ml-1">/month</span>
                   </div>
-
                   {property.discountPrice && (
                     <div className="mt-3 flex items-center">
                       <span className="text-sm text-gray-500 line-through">
@@ -656,7 +707,6 @@ const PropertyDetail = () => {
                     </div>
                   )}
                 </div>
-
                 {property.securityDeposit && (
                   <motion.div
                     className="bg-indigo-50 rounded-xl p-4 flex justify-between items-center"
@@ -669,7 +719,6 @@ const PropertyDetail = () => {
                   </motion.div>
                 )}
               </div>
-
               <div className="space-y-4">
                 {property.listingType === "Broker" &&
                   property.brokeragePrice && (
@@ -683,7 +732,6 @@ const PropertyDetail = () => {
                       </span>
                     </motion.div>
                   )}
-
                 <div className="bg-indigo-50 rounded-xl p-6 mt-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                     Payment Summary
@@ -695,7 +743,6 @@ const PropertyDetail = () => {
                         ₹{property.price.toLocaleString()}
                       </span>
                     </div>
-
                     {property.securityDeposit && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Security Deposit</span>
@@ -704,7 +751,6 @@ const PropertyDetail = () => {
                         </span>
                       </div>
                     )}
-
                     {property.listingType === "Broker" &&
                       property.brokeragePrice && (
                         <div className="flex justify-between">
@@ -714,7 +760,6 @@ const PropertyDetail = () => {
                           </span>
                         </div>
                       )}
-
                     <div className="border-t border-indigo-200 pt-3 mt-3">
                       <div className="flex justify-between font-medium">
                         <span className="text-gray-900">
@@ -736,7 +781,6 @@ const PropertyDetail = () => {
             </div>
           </motion.section>
 
-          {/* Amenities Section */}
           <motion.section
             ref={amenitiesRef}
             className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
@@ -748,10 +792,9 @@ const PropertyDetail = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
               <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <Sparkles className="w-5 h-5" />
-              </span>
+              </span>{" "}
               Amenities
             </h2>
-
             <motion.div
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
               variants={staggerContainer}
@@ -837,7 +880,6 @@ const PropertyDetail = () => {
             </motion.div>
           </motion.section>
 
-          {/* Furnishing Section */}
           <motion.section
             ref={furnishingRef}
             className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
@@ -849,10 +891,9 @@ const PropertyDetail = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
               <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <Home className="w-5 h-5" />
-              </span>
+              </span>{" "}
               Furnishing
             </h2>
-
             <div className="bg-indigo-50 p-6 rounded-xl">
               <div className="flex items-center mb-4">
                 <div
@@ -870,7 +911,6 @@ const PropertyDetail = () => {
                   {property.furnishing || "Furnishing details not specified"}
                 </h3>
               </div>
-
               <p className="text-gray-600">
                 {property.furnishing === "Fully Furnished"
                   ? "This property comes with all essential furniture and appliances for immediate move-in."
@@ -883,7 +923,6 @@ const PropertyDetail = () => {
             </div>
           </motion.section>
 
-          {/* Contact Information Section */}
           <motion.section
             ref={contactRef}
             className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
@@ -895,10 +934,9 @@ const PropertyDetail = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
               <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                 <Phone className="w-5 h-5" />
-              </span>
+              </span>{" "}
               Contact Information
             </h2>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-indigo-50 p-6 rounded-xl">
                 <h3 className="text-lg font-medium text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
@@ -906,7 +944,6 @@ const PropertyDetail = () => {
                     ? "Broker Details"
                     : "Owner Details"}
                 </h3>
-
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
@@ -931,7 +968,6 @@ const PropertyDetail = () => {
                       </p>
                     </div>
                   </div>
-
                   {property.listingType === "Broker" ? (
                     <div className="flex items-center p-3 bg-white rounded-lg">
                       <Phone className="w-5 h-5 text-indigo-600 mr-3" />
@@ -949,7 +985,6 @@ const PropertyDetail = () => {
                       </span>
                     </div>
                   )}
-
                   {property.phoneNo && (
                     <div className="flex items-center p-3 bg-white rounded-lg">
                       <Phone className="w-5 h-5 text-indigo-600 mr-3" />
@@ -958,48 +993,22 @@ const PropertyDetail = () => {
                   )}
                 </div>
               </div>
-
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl">
                 <h3 className="text-lg font-medium text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Send a Message
+                  Book This Property
                 </h3>
-
-                <form className="space-y-4">
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      className="w-full p-3 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="email"
-                      placeholder="Your Email"
-                      className="w-full p-3 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <textarea
-                      placeholder="Your Message"
-                      rows={3}
-                      className="w-full p-3 rounded-lg border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
-                    ></textarea>
-                  </div>
-                  <motion.button
-                    type="button"
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    Send Message
-                  </motion.button>
-                </form>
+                <motion.button
+                  className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg font-medium hover:from-green-700 hover:to-teal-700 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowOrderModal(true)}
+                >
+                  Pay Now
+                </motion.button>
               </div>
             </div>
           </motion.section>
 
-          {/* Similar Properties Slider */}
           {similarProperties.length > 0 && (
             <motion.section
               className="bg-white rounded-3xl shadow-md overflow-hidden border border-indigo-100 p-8"
@@ -1013,17 +1022,16 @@ const PropertyDetail = () => {
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
                   <span className="bg-indigo-50 text-indigo-600 p-2 rounded-lg mr-3">
                     <Home className="w-5 h-5" />
-                  </span>
+                  </span>{" "}
                   Similar Properties
                 </h2>
-
                 <div className="flex space-x-2">
                   <motion.button
                     onClick={handlePrevSlide}
                     className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center hover:bg-indigo-100 transition-colors"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    disabled={allImages.length <= 3} // Adjusted to 3 for smaller screens
+                    disabled={allImages.length <= 3}
                   >
                     <ChevronLeft className="w-5 h-5 text-indigo-600" />
                   </motion.button>
@@ -1032,13 +1040,12 @@ const PropertyDetail = () => {
                     className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center hover:bg-indigo-100 transition-colors"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    disabled={allImages.length <= 3} // Adjusted to 3 for smaller screens
+                    disabled={allImages.length <= 3}
                   >
                     <ChevronRight className="w-5 h-5 text-indigo-600" />
                   </motion.button>
                 </div>
               </div>
-
               <div className="relative overflow-hidden">
                 <motion.div
                   className="flex transition-all duration-500 ease-in-out"
@@ -1053,11 +1060,11 @@ const PropertyDetail = () => {
                     }%`,
                   }}
                 >
-                  {allImages.length > 0 ? (
-                    allImages.map(({ img, name, location, price, id }) => (
+                  {property.images && property.images.length > 0 ? (
+                    property.images.map((img, index) => (
                       <motion.div
                         key={id}
-                        className="flex-shrink-0 px-2 w-full md:w-1/2 lg:w-1/5" // Responsive widths
+                        className="flex-shrink-0 px-2 w-full md:w-1/2 lg:w-1/5"
                         whileHover={{ y: -5 }}
                         transition={{ duration: 0.3 }}
                       >
@@ -1067,10 +1074,10 @@ const PropertyDetail = () => {
                               src={img || "https://via.placeholder.com/150"}
                               alt={name || "Similar Property"}
                               className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                              onError={(e) => {
-                                e.target.src =
-                                  "https://via.placeholder.com/150";
-                              }}
+                              onError={(e) =>
+                                (e.target.src =
+                                  "https://via.placeholder.com/150")
+                              }
                             />
                             <div className="absolute bottom-2 left-2">
                               <span className="px-2 py-1 bg-indigo-50/90 backdrop-blur-sm text-xs font-medium rounded-full text-indigo-600">
@@ -1090,7 +1097,7 @@ const PropertyDetail = () => {
                             </div>
                             <div className="mt-3 flex items-center justify-between">
                               <p className="font-bold text-indigo-600">
-                                ₹{price.toLocaleString()}
+                                ₹{price.toLocaleString()}{" "}
                                 <span className="text-xs font-normal text-gray-500">
                                   /mo
                                 </span>
@@ -1116,7 +1123,6 @@ const PropertyDetail = () => {
                   )}
                 </motion.div>
               </div>
-
               {allImages.length > 3 && (
                 <div className="flex justify-center mt-6 space-x-1">
                   {Array.from({
@@ -1145,7 +1151,6 @@ const PropertyDetail = () => {
             </motion.section>
           )}
 
-          {/* Call to Action */}
           <motion.div
             className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl shadow-lg overflow-hidden p-8 text-center text-white"
             variants={fadeInUp}
@@ -1160,18 +1165,18 @@ const PropertyDetail = () => {
               </h2>
             </motion.div>
             <p className="text-white/90 mb-6 max-w-2xl mx-auto">
-              Don't miss out on this opportunity. Contact the{" "}
-              {property.listingType === "Broker" ? "broker" : "owner"} today to
-              schedule a viewing or get more information.
+              Don’t miss out on this opportunity. Book now or contact the{" "}
+              {property.listingType === "Broker" ? "broker" : "owner"} for more
+              details.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <motion.button
                 className="bg-white text-indigo-600 px-8 py-3 rounded-xl font-semibold hover:bg-indigo-50 transition-colors"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => scrollToSection(contactRef, "contact")}
+                onClick={() => setShowOrderModal(true)}
               >
-                Contact Now
+                Book Now
               </motion.button>
               <motion.button
                 className="bg-indigo-500/20 backdrop-blur-sm border border-white/30 text-white px-8 py-3 rounded-xl font-semibold hover:bg-indigo-600/30 transition-colors"
@@ -1184,6 +1189,131 @@ const PropertyDetail = () => {
             </div>
           </motion.div>
         </div>
+
+        {/* Order Payment Modal */}
+        {showOrderModal && !paymentStatus && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 border border-indigo-100"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h3 className="text-xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Book {property.name}
+              </h3>
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  Total Amount: ₹
+                  {(
+                    property.price + (property.securityDeposit || 0)
+                  ).toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Includes first month rent and security deposit (if
+                  applicable).
+                </p>
+                <motion.button
+                  className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg font-medium hover:from-green-700 hover:to-teal-700 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={initiatePayment}
+                >
+                  Pay Now
+                </motion.button>
+                <motion.button
+                  className="w-full border border-indigo-500 text-indigo-600 py-3 rounded-lg font-medium hover:bg-indigo-50 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowOrderModal(false)}
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Payment Success/Failure Modal */}
+        {paymentStatus && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 border border-indigo-100 text-center"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {paymentStatus.paymentId ? (
+                <>
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle className="w-10 h-10 text-green-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Payment Successful!
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Your booking for{" "}
+                    <span className="font-medium">{property.name}</span> has
+                    been confirmed.
+                  </p>
+                  <div className="text-left space-y-2 mb-6">
+                    <p>
+                      <strong>Payment ID:</strong> {paymentStatus.paymentId}
+                    </p>
+                    <p>
+                      <strong>Order ID:</strong> {paymentStatus.orderId}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg
+                      className="w-10 h-10 text-red-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Payment Failed
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    {paymentStatus.error ||
+                      "Something went wrong. Please try again."}
+                  </p>
+                </>
+              )}
+              <motion.button
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={resetPayment}
+              >
+                {paymentStatus.paymentId ? "Back to Property" : "Try Again"}
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

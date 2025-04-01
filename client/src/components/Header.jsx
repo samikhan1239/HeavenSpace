@@ -44,6 +44,9 @@ export default function Header() {
     }
   };
 
+  // Navigation items
+  const navItems = ["Home", "Rooms", "Hostels", "Hotels", "About", "Contact"];
+
   return (
     <>
       {/* Header */}
@@ -55,7 +58,7 @@ export default function Header() {
       >
         <div className="container mx-auto px-4 py-4 flex items-center justify-between h-full">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
+          <Link to="/home" className="flex items-center space-x-3">
             <motion.div
               initial={{ rotate: -10, scale: 0.9 }}
               animate={{ rotate: 0, scale: 1 }}
@@ -79,20 +82,8 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-            >
-              <Link
-                to="/"
-                className="text-base font-semibold text-gray-700 hover:text-blue-600 transition-colors duration-300"
-              >
-                Home
-              </Link>
-            </motion.div>
-            {["Rooms", "Hostels", "Hotels", "About", "Contact"].map(
-              (item, index) => (
+            {currentUser ? (
+              navItems.map((item, index) => (
                 <motion.div
                   key={item}
                   initial={{ opacity: 0, y: -10 }}
@@ -100,13 +91,22 @@ export default function Header() {
                   transition={{ delay: 0.1 * index, duration: 0.5 }}
                 >
                   <Link
-                    to={"/listings"}
+                    to={item === "Home" ? "/home" : "/listings"}
                     className="text-base font-semibold text-gray-700 hover:text-blue-600 transition-colors duration-300"
                   >
                     {item}
                   </Link>
                 </motion.div>
-              )
+              ))
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.5 }}
+                className="text-base font-semibold text-gray-500 cursor-not-allowed"
+              >
+                Please sign in to access navigation
+              </motion.div>
             )}
             {currentUser ? (
               <div className="relative">
@@ -180,23 +180,22 @@ export default function Header() {
             >
               <div className="container mx-auto px-4 py-6">
                 <nav className="flex flex-col space-y-6">
-                  {[
-                    "Home",
-                    "Rooms",
-                    "Hostels",
-                    "Hotels",
-                    "About",
-                    "Contact",
-                  ].map((item) => (
-                    <Link
-                      key={item}
-                      to={item === "Home" ? "/" : "/listings"}
-                      className="text-base font-semibold text-gray-700 hover:text-blue-600 transition-colors py-2"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {item}
-                    </Link>
-                  ))}
+                  {currentUser ? (
+                    navItems.map((item) => (
+                      <Link
+                        key={item}
+                        to={item === "Home" ? "/" : "/listings"}
+                        className="text-base font-semibold text-gray-700 hover:text-blue-600 transition-colors py-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {item}
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="text-base font-semibold text-gray-500 py-2">
+                      Please sign in to access navigation
+                    </div>
+                  )}
                   {currentUser ? (
                     <>
                       <Link

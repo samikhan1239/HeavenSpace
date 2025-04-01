@@ -51,7 +51,7 @@ const SignIn = () => {
             navigate("/admin/create-listing");
             break;
           case "user":
-            navigate("/");
+            navigate("/home");
             break;
           default:
             setError("❌ Unknown user role. Redirecting to home...");

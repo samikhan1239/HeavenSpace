@@ -49,7 +49,7 @@ export default function App() {
       <Header />
       <Routes>
         {/* Default route redirects to /sign-in */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Signin />} />
         <Route path="/sign-in" element={<Signin />} />
         <Route path="/sign-up" element={<SignUp />} />
         <Route path="/home" element={<Home />} />
